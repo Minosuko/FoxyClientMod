@@ -1,0 +1,20 @@
+package com.foxyclient.event.events;
+
+import com.foxyclient.event.Event;
+import net.minecraft.client.gui.DrawContext;
+
+/**
+ * Fired during HUD rendering.
+ */
+public class Render2DEvent extends Event {
+    private final DrawContext context;
+    private final float tickDelta;
+
+    public Render2DEvent(DrawContext context, float tickDelta) {
+        this.context = context;
+        this.tickDelta = tickDelta;
+    }
+
+    public DrawContext getContext() { return context; }
+    public float getTickDelta() { return tickDelta; }
+}

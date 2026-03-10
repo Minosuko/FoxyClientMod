@@ -1,0 +1,106 @@
+plugins {
+    id "fabric-loom" version "1.15.4"
+    id "maven-publish"
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    mavenCentral()
+    maven { url = "https://maven.fabricmc.net/" }
+    maven { url = "https://maven.seedfinding.com/" }
+    maven { url = "https://maven-snapshots.seedfinding.com/" }
+    maven { url = "https://maven.latticg.com/" }
+    maven { url = "https://repo.spongepowered.org/repository/maven-public/" }
+    maven { url = "https://impactdevelopment.github.io/maven/" }
+    maven { url = "https://maven.shedaniel.me/" }
+    maven { url = "https://jitpack.io" }
+    maven {
+        name = "meteor-maven"
+        url = uri("https://maven.meteordev.org/releases")
+    }
+    maven {
+        name = "meteor-maven-snapshots"
+        url = uri("https://maven.meteordev.org/snapshots")
+    }
+}
+
+loom {
+    accessWidenerPath = file("src/main/resources/foxyclient.accesswidener")
+    mixin {
+        defaultRefmapName = "foxyclient-refmap.json"
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java']
+        }
+        resources {
+            srcDirs = ['src/main/resources']
+        }
+    }
+}
+
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    // JSON for config
+    implementation "com.google.code.gson:gson:2.11.0"
+
+    // Cloth Config (for SeedCrackerX)
+    modApi("me.shedaniel.cloth:cloth-config-fabric:${project.cloth_config_version}") {
+        exclude(group: "net.fabricmc.fabric-api")
+    }
+    include("me.shedaniel.cloth:cloth-config-fabric:${project.cloth_config_version}")
+
+    // Baritone (https://github.com/MeteorDevelopment/baritone)
+    modCompileOnly("meteordevelopment:baritone:${project.baritone_version}-SNAPSHOT")
+
+    // Seedfinding Libraries
+    include implementation("com.seedfinding:mc_math:${project.seedfinding_math_version}") { transitive = false }
+    include implementation("com.seedfinding:mc_seed:${project.seedfinding_seed_version}") { transitive = false }
+    include implementation("com.seedfinding:mc_core:${project.seedfinding_core_version}") { transitive = false }
+    include implementation("com.seedfinding:mc_noise:${project.seedfinding_noise_version}") { transitive = false }
+    include implementation("com.seedfinding:mc_biome:${project.seedfinding_biome_version}") { transitive = false }
+    include implementation("com.seedfinding:mc_terrain:${project.seedfinding_terrain_version}") { transitive = false }
+    include implementation("com.seedfinding:mc_feature:${project.seedfinding_feature_version}") { transitive = false }
+    include implementation("com.seedfinding:mc_reversal:${project.seedfinding_reversal_version}") { transitive = false }
+
+    include implementation("com.seedfinding:latticg:${project.latticg_version}")
+}
+
+processResources {
+    inputs.property "version", project.version
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 21
+}
+
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_${project.base.archivesName.get()}" }
+    }
+}

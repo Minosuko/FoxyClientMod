@@ -1,0 +1,40 @@
+{
+    "required": true,
+    "minVersion": "0.8",
+    "package": "com.foxyclient.mixin",
+    "refmap": "foxyclient-refmap.json",
+    "compatibilityLevel": "JAVA_21",
+    "client": [
+        "MixinMinecraftClient",
+        "MixinClientPlayerEntity",
+        "MixinClientPlayNetworkHandler",
+        "MixinClientCommonNetworkHandler",
+        "MixinClientConnection",
+        "MixinWorldRenderer",
+        "MixinKeyboardInput",
+        "MixinInGameHud",
+        "MixinLivingEntity",
+        "MixinItemStack",
+        "MixinTooltipComponent",
+        "LivingEntityAccessor",
+        "MixinPlayerEntity",
+        "MixinEntity",
+        "MixinEntityRenderer",
+        "PlayerMoveC2SPacketAccessor",
+        "CountPlacementModifierAccessor",
+        "HeightRangePlacementModifierAccessor",
+        "InputAccessor",
+        "MinecraftClientAccessor",
+        "MixinChatInputSuggestor",
+        "MixinChatScreen",
+        "MixinInputTick",
+        "MixinLightmapTextureManager",
+        "SimpleOptionAccessor",
+        "StatusEffectInstanceAccessor",
+        "RarityFilterPlacementModifierAccessor",
+        "seedcracker.ClientPlayerEntityMixin"
+    ],
+    "injectors": {
+        "defaultRequire": 1
+    }
+}

@@ -1,0 +1,30 @@
+{
+    "schemaVersion": 1,
+    "id": "foxyclient",
+    "version": "${version}",
+    "accessWidener": "foxyclient.accesswidener",
+    "name": "FoxyClient",
+    "description": "A unified Minecraft client mod combining Meteor, SeedCracker, and Baritone features.",
+    "authors": [
+        "FoxyTeam"
+    ],
+    "contact": {},
+    "license": "MIT",
+    "icon": "assets/foxyclient/icon.png",
+    "environment": "client",
+    "entrypoints": {
+        "client": [
+            "com.foxyclient.seedcracker.FoxySeedCracker",
+            "com.foxyclient.FoxyClient"
+        ]
+    },
+    "mixins": [
+        "foxyclient.mixins.json"
+    ],
+    "depends": {
+        "fabricloader": ">=0.18.0",
+        "minecraft": "~1.21.11",
+        "java": ">=21",
+        "fabric-api": "*"
+    }
+}
