@@ -5,7 +5,7 @@ import com.foxyclient.command.Command;
 
 public class PauseCommand extends Command {
     public PauseCommand() {
-        super("pause", "Pause current task", ".pause");
+        super("pause", "Pause current Baritone task", "pause");
     }
 
     @Override

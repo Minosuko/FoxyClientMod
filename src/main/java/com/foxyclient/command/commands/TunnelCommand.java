@@ -5,7 +5,7 @@ import com.foxyclient.command.Command;
 
 public class TunnelCommand extends Command {
     public TunnelCommand() {
-        super("tunnel", "Dig a tunnel", ".tunnel [length]");
+        super("tunnel", "Start tunneling using Baritone", "tunnel [length]");
     }
 
     @Override

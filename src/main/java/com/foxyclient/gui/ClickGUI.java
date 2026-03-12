@@ -9,7 +9,12 @@ import net.minecraft.client.input.CharInput;
 import net.minecraft.client.input.KeyInput;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.HitResult;
+import net.minecraft.registry.Registries;
+import net.minecraft.block.Block;
 import org.lwjgl.glfw.GLFW;
 
 import java.awt.*;
@@ -217,9 +222,7 @@ public class ClickGUI extends Screen {
 
         // Keybind listening mode
         if (listeningKeybind != null) {
-            if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-                listeningKeybind = null;
-            } else if (keyCode == GLFW.GLFW_KEY_DELETE || keyCode == GLFW.GLFW_KEY_BACKSPACE) {
+            if (keyCode == GLFW.GLFW_KEY_ESCAPE || keyCode == GLFW.GLFW_KEY_DELETE || keyCode == GLFW.GLFW_KEY_BACKSPACE) {
                 listeningKeybind.setKeybind(GLFW.GLFW_KEY_UNKNOWN);
                 listeningKeybind = null;
             } else {
@@ -512,11 +515,11 @@ public class ClickGUI extends Screen {
                 // ---- Expanded Settings ----
                 if (module.getName().equals(expandedModule)) {
                     for (Setting<?> setting : module.getSettings()) {
-                        if (yOff + SETTING_HEIGHT > contentY && yOff < contentY + maxPanelHeight) {
+                        int h = getSettingHeight(setting);
+                        if (yOff + h > contentY && yOff < contentY + maxPanelHeight) {
                             renderSetting(context, tr, setting, x, yOff, mouseX, mouseY);
                         }
-
-                        yOff += SETTING_HEIGHT;
+                        yOff += h;
 
                         // Color picker sliders
                         if (setting instanceof ColorSetting cs && setting.getName().equals(expandedColorSetting)) {
@@ -561,15 +564,52 @@ public class ClickGUI extends Screen {
             else if (scroll > totalHeight - maxPanelHeight) scroll = totalHeight - maxPanelHeight;
         }
 
+        private int getSettingHeight(Setting<?> setting) {
+            if (setting instanceof BlockListSetting bls) {
+                return SETTING_HEIGHT + (bls.getBlocks().size() * 14) + 4;
+            }
+            return SETTING_HEIGHT;
+        }
+
         private void renderSetting(DrawContext context, net.minecraft.client.font.TextRenderer tr,
                                     Setting<?> setting, int px, int sy, int mouseX, int mouseY) {
             // Setting row background
-            context.fill(px + 4, sy, px + panelWidth - 4, sy + SETTING_HEIGHT, COL_SETTING_BG);
+            int height = getSettingHeight(setting);
+            context.fill(px + 4, sy, px + panelWidth - 4, sy + height, COL_SETTING_BG);
 
-            boolean hover = mouseX >= px + 4 && mouseX <= px + panelWidth - 4 &&
-                           mouseY >= sy && mouseY <= sy + SETTING_HEIGHT;
+            boolean hoverBase = mouseX >= px + 4 && mouseX <= px + panelWidth - 4 &&
+                               mouseY >= sy && mouseY <= sy + SETTING_HEIGHT;
 
-            if (setting instanceof BoolSetting bs) {
+            if (setting instanceof BlockListSetting bls) {
+                context.drawTextWithShadow(tr, "§7" + setting.getName(), px + 10, sy + 3, COL_TEXT_DIM);
+                
+                // Edit button — opens BlockSelectorScreen
+                int btnW = 30;
+                int btnX = px + panelWidth - btnW - 10;
+                boolean btnHover = mouseX >= btnX && mouseX <= btnX + btnW && mouseY >= sy + 2 && mouseY <= sy + 12;
+                context.fill(btnX, sy + 2, btnX + btnW, sy + 12, btnHover ? COL_ACCENT : COL_ACCENT_DIM);
+                context.drawTextWithShadow(tr, "Edit", btnX + 3, sy + 3, COL_TEXT);
+
+                int listY = sy + SETTING_HEIGHT;
+                List<Block> blocks = bls.getBlocks();
+                for (int i = 0; i < blocks.size(); i++) {
+                    Block b = blocks.get(i);
+                    String name = BlockListSetting.getDisplayName(b);
+                    if (name.length() > 14) name = name.substring(0, 11) + "...";
+                    
+                    // Block item icon
+                    context.drawItem(new ItemStack(b), px + 10, listY - 1);
+                    // Name next to icon
+                    context.drawTextWithShadow(tr, "§7" + name, px + 28, listY + 3, COL_TEXT_DIM);
+                    
+                    // Remove "X"
+                    int xX = px + panelWidth - 20;
+                    boolean xHover = mouseX >= xX && mouseX <= xX + 10 && mouseY >= listY && mouseY <= listY + 12;
+                    context.drawTextWithShadow(tr, "§c[X]", xX, listY + 3, xHover ? 0xFFFFFFFF : 0xFFAAAAAA);
+                    
+                    listY += 14;
+                }
+            } else if (setting instanceof BoolSetting bs) {
                 // ---- Toggle Switch ----
                 context.drawTextWithShadow(tr, "§7" + setting.getName(), px + 10, sy + 3, COL_TEXT_DIM);
 
@@ -624,7 +664,7 @@ public class ClickGUI extends Screen {
 
                 // Setting name above in dim (only if space, use smaller approach)
                 // We put the name as a tooltip instead
-                if (hover) {
+                if (hoverBase) {
                     setTooltip(setting.getName() + ": " + setting.getDescription(), mouseX, mouseY);
                 }
 
@@ -646,7 +686,7 @@ public class ClickGUI extends Screen {
             }
 
             // Hover tooltip for non-mode settings
-            if (hover && !(setting instanceof ModeSetting)) {
+            if (hoverBase && !(setting instanceof ModeSetting)) {
                 setTooltip(setting.getDescription(), mouseX, mouseY);
             }
         }
@@ -735,11 +775,37 @@ public class ClickGUI extends Screen {
                 // Settings clicks
                 if (module.getName().equals(expandedModule)) {
                     for (Setting<?> setting : module.getSettings()) {
-                        if (yOff >= contentY && yOff + SETTING_HEIGHT <= contentY + maxPanelHeight) {
+                        int h = getSettingHeight(setting);
+                        if (yOff >= contentY && yOff + h <= contentY + maxPanelHeight) {
                             if (mouseX >= x + 4 && mouseX <= x + panelWidth - 4 &&
-                                mouseY >= yOff && mouseY <= yOff + SETTING_HEIGHT) {
+                                mouseY >= yOff && mouseY <= yOff + h) {
 
-                                if (setting instanceof BoolSetting bs) {
+                                if (setting instanceof BlockListSetting bls) {
+                                    // Edit button — open BlockSelectorScreen
+                                    int btnW = 30;
+                                    int btnX = x + panelWidth - btnW - 10;
+                                    if (mouseX >= btnX && mouseX <= btnX + btnW && mouseY >= yOff + 2 && mouseY <= yOff + 12) {
+                                        if (button == 0) {
+                                            var mc = net.minecraft.client.MinecraftClient.getInstance();
+                                            mc.setScreen(new BlockSelectorScreen(bls, () -> {
+                                                if (mc.worldRenderer != null) mc.worldRenderer.reload();
+                                            }, ClickGUI.this));
+                                            return true;
+                                        }
+                                    }
+                                    // Check remove buttons
+                                    int listY = yOff + SETTING_HEIGHT;
+                                    for (int i = 0; i < bls.getBlocks().size(); i++) {
+                                        int xX = x + panelWidth - 20;
+                                        if (mouseX >= xX && mouseX <= xX + 15 && mouseY >= listY && mouseY <= listY + 14) {
+                                            if (button == 0) {
+                                                bls.removeBlock(bls.getBlocks().get(i));
+                                                return true;
+                                            }
+                                        }
+                                        listY += 14;
+                                    }
+                                } else if (setting instanceof BoolSetting bs) {
                                     if (button == 0) { bs.set(!bs.get()); return true; }
                                 } else if (setting instanceof NumberSetting ns) {
                                     if (button == 0) {

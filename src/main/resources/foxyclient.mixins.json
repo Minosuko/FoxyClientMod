@@ -14,12 +14,18 @@
         "MixinKeyboardInput",
         "MixinInGameHud",
         "MixinLivingEntity",
+        "MixinGameRenderer",
+        "MixinAbstractClientPlayerEntity",
+        "MixinCamera",
+        "EntityAccessor",
         "MixinItemStack",
         "MixinTooltipComponent",
         "LivingEntityAccessor",
+        "PlayerLikeEntityAccessor",
         "MixinPlayerEntity",
         "MixinEntity",
         "MixinEntityRenderer",
+        "MixinEntityRenderState",
         "PlayerMoveC2SPacketAccessor",
         "CountPlacementModifierAccessor",
         "HeightRangePlacementModifierAccessor",
@@ -32,7 +38,13 @@
         "SimpleOptionAccessor",
         "StatusEffectInstanceAccessor",
         "RarityFilterPlacementModifierAccessor",
-        "seedcracker.ClientPlayerEntityMixin"
+        "EntityVelocityUpdateS2CPacketAccessor",
+        "ExplosionS2CPacketAccessor",
+        "seedcracker.ClientPlayerEntityMixin",
+        "MixinAbstractBlockState",
+        "MixinBlock",
+        "MixinBlockRenderLayers",
+        "MixinBlockEntityRenderManager"
     ],
     "injectors": {
         "defaultRequire": 1

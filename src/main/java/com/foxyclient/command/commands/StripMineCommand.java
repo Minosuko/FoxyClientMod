@@ -5,7 +5,7 @@ import com.foxyclient.command.Command;
 
 public class StripMineCommand extends Command {
     public StripMineCommand() {
-        super("stripmine", "Strip mine at Y level", ".stripmine [y] [branchLen] [spacing]");
+        super("stripmine", "Start strip mining using Baritone", "stripmine [y] [branchLen] [spacing]");
     }
 
     @Override

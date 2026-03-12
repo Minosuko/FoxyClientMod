@@ -5,7 +5,7 @@ import com.foxyclient.command.Command;
 
 public class FriendCommand extends Command {
     public FriendCommand() {
-        super("friend", "Manage friends list", ".friend <add|remove|list> [name]");
+        super("friend", "Manage friends list", "friend <add|remove|list> <name>");
     }
 
     @Override

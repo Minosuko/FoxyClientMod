@@ -19,7 +19,21 @@ public abstract class MixinEntity {
 
     @Inject(method = "changeLookDirection", at = @At("HEAD"), cancellable = true)
     private void onChangeLookDirection(double cursorDeltaX, double cursorDeltaY, CallbackInfo ci) {
-        // Freelook override would go here
+        if ((Object) this == MinecraftClient.getInstance().player) {
+            com.foxyclient.module.render.Freelook freelook = com.foxyclient.module.render.Freelook.get();
+            if (freelook != null && freelook.isEnabled()) {
+                freelook.updateCamera(cursorDeltaX, cursorDeltaY);
+                ci.cancel();
+                return;
+            }
+
+            com.foxyclient.module.render.Freecam freecam = com.foxyclient.module.render.Freecam.get();
+            if (freecam != null && freecam.isEnabled()) {
+                freecam.updateRotation(cursorDeltaX, cursorDeltaY);
+                ci.cancel();
+                return;
+            }
+        }
     }
 
     @Inject(method = "isLogicalSideForUpdatingMovement", at = @At("HEAD"), cancellable = true)

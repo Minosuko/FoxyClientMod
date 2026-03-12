@@ -46,7 +46,7 @@ public class DupeCommand extends Command {
     private int initialSelectedSlot = -1;
 
     public DupeCommand() {
-        super("dupe", "Automates duplication exploits.", ".dupe [container/frame] [delay]");
+        super("dupe", "Automates duplication exploits.", "dupe [container/frame] [delay]");
     }
 
     @Override

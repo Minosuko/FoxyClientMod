@@ -6,7 +6,7 @@ import com.foxyclient.util.WaypointManager;
 
 public class WaypointCommand extends Command {
     public WaypointCommand() {
-        super("waypoint", "Manage waypoints", ".waypoint <add|remove|list|goto> [name] [x y z]");
+        super("waypoint", "Manage waypoints", "waypoint <add|remove|list|goto> [name] [x y z]");
     }
 
     @Override

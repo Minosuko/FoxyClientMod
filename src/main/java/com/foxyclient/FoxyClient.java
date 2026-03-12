@@ -27,7 +27,7 @@ import java.util.List;
  */
 public class FoxyClient implements ClientModInitializer {
     public static final String NAME = "FoxyClient";
-    public static final String VERSION = "1.0.0";
+    public static final String VERSION = "1.2.5-beta";
     public static final Logger LOGGER = LoggerFactory.getLogger(NAME);
 
     public static FoxyClient INSTANCE;
@@ -39,8 +39,6 @@ public class FoxyClient implements ClientModInitializer {
     private FriendsManager friendsManager;
     private WaypointManager waypointManager;
     private ClickGUI clickGUI;
-
-    private static final MinecraftClient mc = MinecraftClient.getInstance();
 
     @Override
     public void onInitializeClient() {
@@ -66,6 +64,7 @@ public class FoxyClient implements ClientModInitializer {
      * Called every client tick from MixinMinecraftClient.
      */
     public void onTick() {
+        MinecraftClient mc = MinecraftClient.getInstance();
         if (mc.player == null || mc.world == null) return;
 
         // Open ClickGUI on Right Shift
@@ -89,6 +88,7 @@ public class FoxyClient implements ClientModInitializer {
      * Renders the HUD overlay (called from MixinInGameHud).
      */
     public void renderHUD(DrawContext context) {
+        MinecraftClient mc = MinecraftClient.getInstance();
         if (mc.player == null) return;
         if (mc.options.hudHidden) return;
 

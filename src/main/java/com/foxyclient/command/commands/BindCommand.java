@@ -7,7 +7,7 @@ import org.lwjgl.glfw.GLFW;
 
 public class BindCommand extends Command {
     public BindCommand() {
-        super("bind", "Bind a key to a module", ".bind <module> <key>");
+        super("bind", "Bind a key to a module", "bind <module> <key>");
     }
 
     @Override

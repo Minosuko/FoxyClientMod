@@ -27,7 +27,9 @@ public abstract class Command {
 
     public String getName() { return name; }
     public String getDescription() { return description; }
-    public String getSyntax() { return syntax; }
+    public String getSyntax() { 
+        return com.foxyclient.FoxyClient.INSTANCE.getCommandManager().getPrefix() + syntax; 
+    }
 
     protected void info(String message) {
         if (mc.player != null) {

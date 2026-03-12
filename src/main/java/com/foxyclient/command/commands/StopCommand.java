@@ -5,7 +5,7 @@ import com.foxyclient.command.Command;
 
 public class StopCommand extends Command {
     public StopCommand() {
-        super("stop", "Stop current pathfinding", ".stop");
+        super("stop", "Stop current Baritone task", "stop");
     }
 
     @Override

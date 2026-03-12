@@ -18,6 +18,15 @@ import org.joml.Vector4f;
 @Mixin(WorldRenderer.class)
 public class MixinWorldRenderer {
 
+    @Inject(method = "render", at = @At("HEAD"))
+    private void onRenderHead(ObjectAllocator allocator, RenderTickCounter tickCounter, boolean renderBlockOutline, net.minecraft.client.render.Camera camera, Matrix4f positionMatrix, Matrix4f basicProjectionMatrix, Matrix4f projectionMatrix, GpuBufferSlice fogBuffer, Vector4f fogColor, boolean renderSky, CallbackInfo ci) {
+        if (FoxyClient.INSTANCE != null) {
+            MatrixStack matrices = new MatrixStack();
+            matrices.multiplyPositionMatrix(positionMatrix);
+            FoxyClient.INSTANCE.getEventBus().post(new RenderEvent(matrices, null, tickCounter.getTickProgress(false)));
+        }
+    }
+
     @Inject(method = "render", at = @At("RETURN"))
     private void onRender(ObjectAllocator allocator, RenderTickCounter tickCounter, boolean renderBlockOutline, net.minecraft.client.render.Camera camera, Matrix4f positionMatrix, Matrix4f basicProjectionMatrix, Matrix4f projectionMatrix, GpuBufferSlice fogBuffer, Vector4f fogColor, boolean renderSky, CallbackInfo ci) {
         if (FoxyClient.INSTANCE == null) return;

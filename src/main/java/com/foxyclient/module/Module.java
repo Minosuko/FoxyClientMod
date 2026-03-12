@@ -20,7 +20,7 @@ public abstract class Module {
     private int keybind;
     private final List<Setting<?>> settings = new ArrayList<>();
 
-    protected static final MinecraftClient mc = MinecraftClient.getInstance();
+    protected final MinecraftClient mc = MinecraftClient.getInstance();
 
     public Module(String name, String description, Category category, int keybind) {
         this.name = name;

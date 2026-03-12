@@ -7,7 +7,7 @@ import net.minecraft.util.math.BlockPos;
 
 public class GotoCommand extends Command {
     public GotoCommand() {
-        super("goto", "Navigate to coordinates", ".goto <x> <y> <z>");
+        super("goto", "Go to a location using Baritone", "goto <x y z|player>");
     }
 
     @Override

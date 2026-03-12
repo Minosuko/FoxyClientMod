@@ -6,7 +6,7 @@ import net.minecraft.entity.player.PlayerEntity;
 
 public class FollowCommand extends Command {
     public FollowCommand() {
-        super("follow", "Follow a player", ".follow <player>");
+        super("follow", "Follow an entity", "follow <player|entity>");
     }
 
     @Override

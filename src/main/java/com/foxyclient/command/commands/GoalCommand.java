@@ -6,7 +6,7 @@ import net.minecraft.util.math.BlockPos;
 
 public class GoalCommand extends Command {
     public GoalCommand() {
-        super("goal", "Set or show goal", ".goal [x y z]");
+        super("goal", "Set or show goal", "goal [x y z]");
     }
 
     @Override

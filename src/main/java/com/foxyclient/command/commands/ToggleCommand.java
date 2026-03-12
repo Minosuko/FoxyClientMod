@@ -6,7 +6,7 @@ import com.foxyclient.module.Module;
 
 public class ToggleCommand extends Command {
     public ToggleCommand() {
-        super("toggle", "Toggle a module on/off", ".toggle <module>");
+        super("toggle", "Toggle a module on/off", "toggle <module>");
     }
 
     @Override

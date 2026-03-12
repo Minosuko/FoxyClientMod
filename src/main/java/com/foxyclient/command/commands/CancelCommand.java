@@ -5,7 +5,7 @@ import com.foxyclient.command.Command;
 
 public class CancelCommand extends Command {
     public CancelCommand() {
-        super("cancel", "Cancel all tasks", ".cancel");
+        super("cancel", "Cancel current Baritone task", "cancel");
     }
 
     @Override

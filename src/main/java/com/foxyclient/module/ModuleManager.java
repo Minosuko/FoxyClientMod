@@ -181,6 +181,7 @@ public class ModuleManager {
         register(new NewerNewChunks());
         register(new PotESP());
         register(new CollectibleESP());
+        register(new XRay());
 
         // ====== Player (11) ======
         register(new AutoEat());
@@ -309,6 +310,7 @@ public class ModuleManager {
         register(new AntiSpawnpoint());
         register(new ShulkerView());
         register(new Minimap());
+        register(new StorageView());
 
         // ====== SeedCracker (1) ======
         register(new SeedCrackerModule()).setVisible(false);
@@ -349,10 +351,16 @@ public class ModuleManager {
     }
 
     public void onKey(int key, int action) {
-        if (action != 1) return; // Only on press
+        if (action == 2) return; // Ignore repeat
+        
         for (Module m : modules) {
             if (m.getKeybind() == key) {
-                m.toggle();
+                if (m.getName().equalsIgnoreCase("Freelook")) {
+                    if (action == 1) m.setEnabled(true);
+                    else if (action == 0) m.setEnabled(false);
+                } else if (action == 1) { // Normal toggle on press
+                    m.toggle();
+                }
             }
         }
     }

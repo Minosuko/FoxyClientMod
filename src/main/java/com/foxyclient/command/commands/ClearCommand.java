@@ -6,7 +6,7 @@ import com.foxyclient.command.Command;
 
 public class ClearCommand extends Command {
     public ClearCommand() {
-        super("clear", "Clear/flatten area", ".clear [radius]");
+        super("clear", "Clear an area using Baritone", "clear <radius>");
     }
 
     @Override

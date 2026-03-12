@@ -5,8 +5,10 @@ import com.foxyclient.event.events.TickEvent;
 import com.foxyclient.module.Category;
 import com.foxyclient.module.Module;
 import com.foxyclient.setting.BoolSetting;
+import com.mojang.authlib.GameProfile;
 import net.minecraft.client.network.OtherClientPlayerEntity;
 import net.minecraft.entity.EquipmentSlot;
+import java.util.UUID;
 
 /**
  * FakePlayer - Spawns a fake player clone at your current position.
@@ -30,8 +32,10 @@ public class FakePlayer extends Module {
             return;
         }
 
-        // Create the fake player with our profile
-        fakePlayer = new OtherClientPlayerEntity(mc.world, mc.player.getGameProfile());
+        // Create the fake player with our profile but a new UUID
+        GameProfile profile = new GameProfile(UUID.randomUUID(), mc.player.getGameProfile().name(), mc.player.getGameProfile().properties());
+
+        fakePlayer = new OtherClientPlayerEntity(mc.world, profile);
         
         // Copy position and rotation
         fakePlayer.copyPositionAndRotation(mc.player);
@@ -49,6 +53,9 @@ public class FakePlayer extends Module {
 
         // Set health to match ours
         fakePlayer.setHealth(mc.player.getHealth());
+
+        // Sync skin layers (DataTracker)
+        fakePlayer.getDataTracker().set(com.foxyclient.mixin.PlayerLikeEntityAccessor.getPlayerModeCustomizationId(), mc.player.getDataTracker().get(com.foxyclient.mixin.PlayerLikeEntityAccessor.getPlayerModeCustomizationId()));
 
         // Give it a negative entity ID so we don't conflict with real entities
         fakePlayer.setId(FAKE_PLAYER_ID);

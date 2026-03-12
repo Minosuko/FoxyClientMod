@@ -81,8 +81,25 @@ public abstract class MixinLivingEntity {
                 this.jumpingCooldown = 0;
             }
 
+            // Freelook / Freecam rotation suppression
+            com.foxyclient.module.render.Freelook freelook = com.foxyclient.module.render.Freelook.get();
+            com.foxyclient.module.render.Freecam freecam = com.foxyclient.module.render.Freecam.get();
+            
+            if ((freelook != null && freelook.isEnabled()) || (freecam != null && freecam.isEnabled())) {
+                LivingEntityAccessor accessor = (LivingEntityAccessor) this;
+                // If freelook is on, we want the body to stay still. 
+                // We don't use RotationManager here because that's for server-side rotations/spoofing.
+                // We just want to keep the render model still.
+                float yaw = ((LivingEntity)(Object)this).getYaw();
+                float pitch = ((LivingEntity)(Object)this).getPitch();
+                
+                accessor.setBodyYaw(yaw);
+                accessor.setLastBodyYaw(yaw);
+                accessor.setHeadYaw(yaw);
+                accessor.setLastHeadYaw(yaw);
+            }
             // Spinbot/Rotation rendering spoofing
-            if (RotationManager.isActive()) {
+            else if (RotationManager.isActive()) {
                 boolean isFirstPerson = MinecraftClient.getInstance().options.getPerspective().isFirstPerson();
                 if (!RotationManager.shouldNormalize() || !isFirstPerson) {
                     LivingEntityAccessor accessor = (LivingEntityAccessor) this;

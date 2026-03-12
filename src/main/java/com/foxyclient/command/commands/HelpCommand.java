@@ -5,7 +5,7 @@ import com.foxyclient.command.Command;
 
 public class HelpCommand extends Command {
     public HelpCommand() {
-        super("help", "List all commands", ".help");
+        super("help", "List all commands", "help");
     }
 
     @Override

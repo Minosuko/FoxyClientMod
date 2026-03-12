@@ -6,30 +6,31 @@ import com.foxyclient.event.events.Render2DEvent;
 import com.foxyclient.module.Category;
 import com.foxyclient.module.Module;
 import com.foxyclient.setting.BoolSetting;
+import com.foxyclient.setting.ModeSetting;
 import com.foxyclient.setting.NumberSetting;
 import com.foxyclient.util.WaypointManager;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.Heightmap;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
 import net.minecraft.block.MapColor;
-
-import java.awt.Color;
+import net.minecraft.world.Heightmap;
 
 /**
- * Minimap module to display nearby entities and waypoints.
+ * Premium Minimap HUD module.
+ * Features: glassmorphic background, glow border, height-shaded terrain,
+ * triangular player arrow, distinct entity markers, styled compass, info panel.
  */
 public class Minimap extends Module {
+    // --- Settings ---
     private final NumberSetting zoom = addSetting(new NumberSetting("Zoom", "Zoom level", 1.0, 0.5, 5.0));
-    private final NumberSetting scale = addSetting(new NumberSetting("Scale", "Size of the map", 100.0, 50.0, 300.0));
+    private final NumberSetting scale = addSetting(new NumberSetting("Scale", "Size of the map", 120.0, 50.0, 300.0));
     private final NumberSetting xOffset = addSetting(new NumberSetting("X Offset", "X position", 10.0, 0.0, 1000.0));
     private final NumberSetting yOffset = addSetting(new NumberSetting("Y Offset", "Y position", 10.0, 0.0, 1000.0));
-    private final NumberSetting mapAlpha = addSetting(new NumberSetting("Alpha", "Map transparency", 0.7, 0.1, 1.0));
+    private final NumberSetting mapAlpha = addSetting(new NumberSetting("Alpha", "Map transparency", 0.75, 0.1, 1.0));
     private final NumberSetting markerScale = addSetting(new NumberSetting("Marker Scale", "Size of entities/waypoints", 1.5, 0.5, 3.0));
     private final BoolSetting northLock = addSetting(new BoolSetting("North Lock", "Lock map rotation to North", false));
     private final BoolSetting circular = addSetting(new BoolSetting("Circular", "Circular minimap shape", true));
@@ -37,22 +38,31 @@ public class Minimap extends Module {
     private final BoolSetting waypoints = addSetting(new BoolSetting("Waypoints", "Show registered waypoints", true));
     private final BoolSetting terrain = addSetting(new BoolSetting("Terrain", "Show basic terrain colors", true));
     private final BoolSetting info = addSetting(new BoolSetting("Info", "Show coordinates and biome", true));
+    private final ModeSetting borderColor = addSetting(new ModeSetting("Border Color", "Border accent color", "Cyan", "Cyan", "Purple", "Rainbow", "White"));
+    private final ModeSetting markerStyle = addSetting(new ModeSetting("Marker Style", "Entity marker shape", "Diamonds", "Dots", "Diamonds"));
 
-    // Cache for terrain colors: [x][z]
-    private final int[][] terrainCache = new int[512][512];
-    private final long[][] terrainCachePos = new long[512][512]; // stores (x << 32) | z
-    private int lastPlayerX = Integer.MAX_VALUE;
-    private int lastPlayerZ = Integer.MAX_VALUE;
+    // --- Terrain cache ---
+    private static final int CACHE_SIZE = 512;
+    private final int[][] terrainCache = new int[CACHE_SIZE][CACHE_SIZE];
+    private final int[][] terrainHeightCache = new int[CACHE_SIZE][CACHE_SIZE];
+    private final long[][] terrainCachePos = new long[CACHE_SIZE][CACHE_SIZE];
+
+    // Border color constants
+    private static final int GLOW_LAYERS = 6;
 
     public Minimap() {
-        super("Minimap", "Displays a minimap on your HUD", Category.UI);
+        super("Minimap", "Displays a premium minimap on your HUD", Category.UI);
     }
+
+    // =========================================================================
+    // Main render entry
+    // =========================================================================
 
     @EventHandler
     public void onRender2D(Render2DEvent event) {
         if (nullCheck()) return;
 
-        DrawContext context = event.getContext();
+        DrawContext ctx = event.getContext();
         float size = scale.get().floatValue();
         float x = xOffset.get().floatValue();
         float y = yOffset.get().floatValue();
@@ -60,213 +70,371 @@ public class Minimap extends Module {
         float centerY = y + size / 2f;
         float radius = size / 2f;
 
-        float tickDelta = event.getTickDelta();
-        // Use getX() / getZ() for simplicity in 2D, or accessors if lerping is needed
-        double lerpX = mc.player.getX();
-        double lerpZ = mc.player.getZ();
+        double playerX = mc.player.getX();
+        double playerZ = mc.player.getZ();
         float yaw = northLock.get() ? 0 : mc.player.getYaw();
 
-        // Draw Background
+        // 1) Outer glow
+        drawGlow(ctx, centerX, centerY, radius);
+
+        // 2) Background
         int bgAlpha = (int) (mapAlpha.get().floatValue() * 255);
-        int bgColor = (bgAlpha << 24);
-        
+        int bgColor = (bgAlpha << 24) | 0x0C0C14; // dark navy tint
         if (circular.get()) {
-            drawCircle(context, centerX, centerY, radius, bgColor);
-            drawCircleBorder(context, centerX, centerY, radius, 0xFF444444);
-            drawCircleBorder(context, centerX, centerY, radius - 1, 0xFFFFFFFF);
+            fillCircle(ctx, centerX, centerY, radius, bgColor);
         } else {
-            context.fill((int) x, (int) y, (int) (x + size), (int) (y + size), bgColor);
-            drawRectBorder(context, (int) x, (int) y, (int) size, (int) size, 0xFF444444);
-            drawRectBorder(context, (int) x + 1, (int) y + 1, (int) size - 2, (int) size - 2, 0xFFFFFFFF);
+            ctx.fill((int) x, (int) y, (int) (x + size), (int) (y + size), bgColor);
         }
 
-        // Draw Terrain
+        // 3) Terrain
         if (terrain.get()) {
-            drawTerrain(context, centerX, centerY, radius, lerpX, lerpZ, yaw);
+            drawTerrain(ctx, centerX, centerY, radius, playerX, playerZ, yaw);
         }
 
-        // Draw Player Arrow
-        drawPlayerArrow(context, centerX, centerY, yaw);
-
-        // Draw Entities
+        // 4) Entity markers
         if (entities.get()) {
             for (Entity entity : mc.world.getEntities()) {
                 if (entity == mc.player) continue;
-                
-                double entX = entity.getX();
-                double entZ = entity.getZ();
-                renderMarker(context, entX, entZ, lerpX, lerpZ, yaw, centerX, centerY, radius, 0xFFFF0000);
+                int color;
+                if (entity instanceof PlayerEntity) {
+                    color = 0xFFFFFFFF; // white for players
+                } else if (entity instanceof HostileEntity) {
+                    color = 0xFFFF4444; // red for hostiles
+                } else {
+                    color = 0xFFFF9933; // orange for others
+                }
+                renderMarker(ctx, entity.getX(), entity.getZ(), playerX, playerZ, yaw, centerX, centerY, radius, color);
             }
         }
 
-        // Draw Waypoints
+        // 5) Waypoint markers
         if (waypoints.get()) {
-            String currentDim = mc.world.getRegistryKey().getValue().toString();
-            for (WaypointManager.Waypoint wp : FoxyClient.INSTANCE.getWaypointManager().getForDimension(currentDim)) {
-                renderMarker(context, wp.x(), wp.z(), lerpX, lerpZ, yaw, centerX, centerY, radius, 0xFF00FFFF);
+            String dim = mc.world.getRegistryKey().getValue().toString();
+            for (WaypointManager.Waypoint wp : FoxyClient.INSTANCE.getWaypointManager().getForDimension(dim)) {
+                renderWaypoint(ctx, wp, playerX, playerZ, yaw, centerX, centerY, radius);
             }
         }
 
-        // Draw Compass Labels (N, E, S, W)
-        drawCompassLabels(context, centerX, centerY, radius, yaw);
+        // 6) Player arrow
+        drawPlayerArrow(ctx, centerX, centerY, yaw);
 
-        // Draw Info (Coordinates and Biome)
+        // 7) Accent border ring
+        drawBorder(ctx, centerX, centerY, radius);
+
+        // 8) Compass labels
+        drawCompassLabels(ctx, centerX, centerY, radius, yaw);
+
+        // 9) Info panel
         if (info.get()) {
-            drawInfo(context, x, y, size);
+            drawInfoPanel(ctx, centerX, y + size, radius);
         }
     }
 
-    private void drawInfo(DrawContext context, float x, float y, float size) {
-        String coords = (int) mc.player.getX() + ", " + (int) mc.player.getY() + ", " + (int) mc.player.getZ();
-        String biome = mc.world.getBiome(mc.player.getBlockPos()).getKey().map(k -> k.getValue().getPath()).orElse("Unknown");
-        biome = biome.substring(0, 1).toUpperCase() + biome.substring(1).replace("_", " ");
+    // =========================================================================
+    // Glow effect — concentric translucent rings outside the border
+    // =========================================================================
 
-        context.getMatrices().pushMatrix();
-        context.getMatrices().translate(x + size / 2f, y + size + 5);
-        context.getMatrices().scale(0.8f, 0.8f);
-        
-        context.drawCenteredTextWithShadow(mc.textRenderer, coords, 0, 0, 0xFFBBBBBB);
-        context.drawCenteredTextWithShadow(mc.textRenderer, biome, 0, 10, 0xFF888888);
-        
-        context.getMatrices().popMatrix();
-    }
-
-    private void drawCompassLabels(DrawContext context, float centerX, float centerY, float radius, float yaw) {
-        float angle = (float) Math.toRadians(yaw);
-        float cos = MathHelper.cos(angle);
-        float sin = MathHelper.sin(angle);
-
-        String[] labels = {"N", "E", "S", "W"};
-        double[][] worldDirections = {{0, -1000}, {1000, 0}, {0, 1000}, {-1000, 0}};
-
-        for (int i = 0; i < 4; i++) {
-            double dx = worldDirections[i][0];
-            double dz = worldDirections[i][1];
-            
-            float nx = (float) (dx * cos + dz * sin);
-            float nz = (float) (dz * cos - dx * sin);
-
-            float dist = (float) Math.sqrt(nx * nx + nz * nz);
-            nx = nx / dist * (radius + 5);
-            nz = nz / dist * (radius + 5);
-
-            float finalX = centerX + nx;
-            float finalY = centerY - nz;
-
-            context.drawCenteredTextWithShadow(mc.textRenderer, labels[i], (int)finalX, (int)(finalY - 4), 0xFFFFFFFF);
+    private void drawGlow(DrawContext ctx, float cx, float cy, float radius) {
+        int[] accent = getAccentColor();
+        for (int i = GLOW_LAYERS; i >= 1; i--) {
+            int alpha = Math.max(8, 35 - i * 5);
+            int glowColor = (alpha << 24) | (accent[0] << 16) | (accent[1] << 8) | accent[2];
+            float r = radius + i * 2f;
+            if (circular.get()) {
+                drawRing(ctx, cx, cy, r, r + 1.5f, glowColor);
+            } else {
+                int ix = (int) (cx - r), iy = (int) (cy - r), iw = (int) (r * 2), ih = (int) (r * 2);
+                drawRectBorder(ctx, ix, iy, iw, ih, glowColor);
+            }
         }
     }
 
-    private void drawTerrain(DrawContext context, float centerX, float centerY, float radius, double lerpX, double lerpZ, float yaw) {
+    // =========================================================================
+    // Accent border
+    // =========================================================================
+
+    private void drawBorder(DrawContext ctx, float cx, float cy, float radius) {
+        int[] accent = getAccentColor();
+        int borderOuter = 0xFF000000 | (accent[0] << 16) | (accent[1] << 8) | accent[2];
+        int borderInner = 0x60FFFFFF;
+
+        if (circular.get()) {
+            drawRing(ctx, cx, cy, radius - 1f, radius, borderInner);
+            drawRing(ctx, cx, cy, radius, radius + 1.5f, borderOuter);
+        } else {
+            float x = cx - radius, y = cy - radius, s = radius * 2;
+            drawRectBorder(ctx, (int) x, (int) y, (int) s, (int) s, borderOuter);
+            drawRectBorder(ctx, (int) x + 1, (int) y + 1, (int) s - 2, (int) s - 2, borderInner);
+        }
+    }
+
+    private int[] getAccentColor() {
+        String mode = borderColor.get();
+        return switch (mode) {
+            case "Purple" -> new int[]{180, 100, 255};
+            case "White" -> new int[]{220, 220, 230};
+            case "Rainbow" -> {
+                float hue = (System.currentTimeMillis() % 3000) / 3000f;
+                int rgb = java.awt.Color.HSBtoRGB(hue, 0.7f, 1.0f);
+                yield new int[]{(rgb >> 16) & 0xFF, (rgb >> 8) & 0xFF, rgb & 0xFF};
+            }
+            default -> new int[]{0, 210, 255}; // Cyan
+        };
+    }
+
+    // =========================================================================
+    // Terrain rendering with elevation shading
+    // =========================================================================
+
+    private void drawTerrain(DrawContext ctx, float cx, float cy, float radius, double px, double pz, float yaw) {
         float z = zoom.get().floatValue();
-        int res = 2; // Sample every 2 blocks for better detail with cache
+        int res = 1; // sample every 1 block
         int range = (int) (radius / z) + res;
-        
+
         float angle = (float) Math.toRadians(yaw);
         float cos = MathHelper.cos(angle);
         float sin = MathHelper.sin(angle);
+
+        float radiusSq = radius * radius;
+        int baseX = (int) Math.floor(px);
+        int baseZ = (int) Math.floor(pz);
 
         for (int dx = -range; dx <= range; dx += res) {
             for (int dz = -range; dz <= range; dz += res) {
                 float mapX = dx * z;
                 float mapZ = dz * z;
-                
-                float rotatedX = mapX * cos + mapZ * sin;
-                float rotatedZ = mapZ * cos - mapX * sin;
+
+                float rotX = mapX * cos + mapZ * sin;
+                float rotZ = mapZ * cos - mapX * sin;
 
                 if (circular.get()) {
-                    if (rotatedX * rotatedX + rotatedZ * rotatedZ > radius * radius) continue;
+                    if (rotX * rotX + rotZ * rotZ > radiusSq) continue;
                 } else {
-                    if (Math.abs(rotatedX) > radius || Math.abs(rotatedZ) > radius) continue;
+                    if (Math.abs(rotX) > radius || Math.abs(rotZ) > radius) continue;
                 }
 
-                int worldX = (int) Math.floor(lerpX) + dx;
-                int worldZ = (int) Math.floor(lerpZ) + dz;
-                
+                int worldX = baseX + dx;
+                int worldZ = baseZ + dz;
+
                 int color = getCachedColor(worldX, worldZ);
                 if (color == 0) continue;
 
-                float finalX = centerX + rotatedX;
-                float finalY = centerY - rotatedZ;
-                int pixelSize = (int) Math.ceil(res * z);
-                
-                context.fill((int)finalX, (int)finalY, (int)(finalX + pixelSize), (int)(finalY + pixelSize), color | 0xFF000000);
+                // Elevation shading: compare to south neighbor
+                int neighborHeight = getCachedHeight(worldX, worldZ + 1);
+                int thisHeight = getCachedHeight(worldX, worldZ);
+                int delta = thisHeight - neighborHeight;
+                color = shadeColor(color, delta);
+
+                float finalX = cx + rotX;
+                float finalY = cy - rotZ;
+                int pixelSize = Math.max(1, (int) Math.ceil(z));
+
+                ctx.fill((int) finalX, (int) finalY, (int) (finalX + pixelSize), (int) (finalY + pixelSize), color | 0xFF000000);
             }
         }
     }
 
+    private int shadeColor(int color, int heightDelta) {
+        int r = (color >> 16) & 0xFF;
+        int g = (color >> 8) & 0xFF;
+        int b = color & 0xFF;
+
+        // Lighten for higher, darken for lower
+        int shift = MathHelper.clamp(heightDelta * 12, -40, 40);
+        r = MathHelper.clamp(r + shift, 0, 255);
+        g = MathHelper.clamp(g + shift, 0, 255);
+        b = MathHelper.clamp(b + shift, 0, 255);
+
+        return (r << 16) | (g << 8) | b;
+    }
+
     private int getCachedColor(int x, int z) {
-        int ix = Math.floorMod(x, 512);
-        int iz = Math.floorMod(z, 512);
+        int ix = Math.floorMod(x, CACHE_SIZE);
+        int iz = Math.floorMod(z, CACHE_SIZE);
         long posKey = ((long) x << 32) | (z & 0xFFFFFFFFL);
 
         if (terrainCachePos[ix][iz] == posKey) {
             return terrainCache[ix][iz];
         }
 
-        // Cache miss, update
-        int color = getBlockColorAt(x, z);
-        terrainCache[ix][iz] = color;
-        terrainCachePos[ix][iz] = posKey;
-        return color;
-    }
-
-    private int getBlockColorAt(int x, int z) {
+        // Cache miss
         int topY = mc.world.getTopY(Heightmap.Type.WORLD_SURFACE, x, z) - 1;
         BlockPos pos = new BlockPos(x, topY, z);
-        if (pos.getY() < mc.world.getBottomY()) return 0;
+        if (pos.getY() < mc.world.getBottomY()) {
+            terrainCache[ix][iz] = 0;
+            terrainHeightCache[ix][iz] = 0;
+            terrainCachePos[ix][iz] = posKey;
+            return 0;
+        }
 
         BlockState state = mc.world.getBlockState(pos);
         if (state.isAir()) {
             topY = mc.world.getTopY(Heightmap.Type.MOTION_BLOCKING, x, z) - 1;
-            state = mc.world.getBlockState(new BlockPos(x, topY, z));
+            pos = new BlockPos(x, topY, z);
+            state = mc.world.getBlockState(pos);
         }
-        
-        return getBlockColor(state);
+
+        int color = getBlockColor(state);
+        terrainCache[ix][iz] = color;
+        terrainHeightCache[ix][iz] = topY;
+        terrainCachePos[ix][iz] = posKey;
+        return color;
+    }
+
+    private int getCachedHeight(int x, int z) {
+        int ix = Math.floorMod(x, CACHE_SIZE);
+        int iz = Math.floorMod(z, CACHE_SIZE);
+        long posKey = ((long) x << 32) | (z & 0xFFFFFFFFL);
+
+        if (terrainCachePos[ix][iz] == posKey) {
+            return terrainHeightCache[ix][iz];
+        }
+        // Force populate cache
+        getCachedColor(x, z);
+        return terrainHeightCache[ix][iz];
     }
 
     private int getBlockColor(BlockState state) {
         MapColor mapColor = state.getMapColor(mc.world, BlockPos.ORIGIN);
-        if (mapColor != null) return mapColor.color;
-
+        if (mapColor != null && mapColor.color != 0) return mapColor.color;
         if (state.isAir()) return 0;
-        if (state.isOf(Blocks.GRASS_BLOCK)) return 0x567D46;
-        if (state.isOf(Blocks.WATER)) return 0x44AFF5;
-        if (state.isOf(Blocks.DIRT)) return 0x9B7653;
-        if (state.isOf(Blocks.STONE)) return 0x808080;
-        if (state.isOf(Blocks.SAND)) return 0xD2B48C;
-        
         return 0x777777;
     }
 
-    private void drawPlayerArrow(DrawContext context, float centerX, float centerY, float yaw) {
-        context.getMatrices().pushMatrix();
-        context.getMatrices().translate(centerX, centerY);
-        if (northLock.get()) {
-            context.getMatrices().rotate((float) Math.toRadians(yaw + 180));
+    // =========================================================================
+    // Player arrow — proper filled triangle
+    // =========================================================================
+
+    private void drawPlayerArrow(DrawContext ctx, float cx, float cy, float yaw) {
+        float arrowSize = 6f;
+
+        // Triangle points (pointing up before rotation):
+        // tip (forward), left base, right base
+        float[][] tri = {
+            { 0, -arrowSize},          // tip
+            {-arrowSize * 0.55f, arrowSize * 0.5f}, // left
+            { arrowSize * 0.55f, arrowSize * 0.5f}  // right
+        };
+
+        // Rotate if north-locked (arrow shows player facing)
+        float angle = northLock.get() ? (float) Math.toRadians(mc.player.getYaw() + 180) : 0;
+        float cos = MathHelper.cos(angle);
+        float sin = MathHelper.sin(angle);
+
+        float[][] rotated = new float[3][2];
+        for (int i = 0; i < 3; i++) {
+            rotated[i][0] = cx + tri[i][0] * cos - tri[i][1] * sin;
+            rotated[i][1] = cy + tri[i][0] * sin + tri[i][1] * cos;
         }
 
-        int color = 0xFF00FF00;
-        int shadow = 0xFF000000;
-        
-        // Better arrow shape
-        // Shadow
-        context.fill(-1, -6, 2, 7, shadow);
-        context.fill(-4, 0, 5, 2, shadow);
-        
-        // Body
-        context.fill(0, -5, 1, 6, color);
-        context.fill(-3, 1, 4, 2, color);
-        context.fill(-2, 0, 3, 1, color);
-        context.fill(-1, -1, 2, 0, color);
-        
-        context.getMatrices().popMatrix();
+        // Fill triangle using scanline
+        fillTriangle(ctx, rotated, 0xFF000000); // shadow offset
+        // Shift shadow slightly
+        float[][] shadow = new float[3][2];
+        for (int i = 0; i < 3; i++) {
+            shadow[i][0] = rotated[i][0] + 1;
+            shadow[i][1] = rotated[i][1] + 1;
+        }
+        fillTriangle(ctx, shadow, 0xFF001100);
+        fillTriangle(ctx, rotated, 0xFF00DD44); // bright green arrow
+
+        // Small center dot
+        ctx.fill((int) cx - 1, (int) cy - 1, (int) cx + 1, (int) cy + 1, 0xFFFFFFFF);
     }
 
-    private void renderMarker(DrawContext context, double worldX, double worldZ, double playerX, double playerZ, float yaw, float centerX, float centerY, float radius, int color) {
-        double diffX = worldX - playerX;
-        double diffZ = worldZ - playerZ;
-        
+    private void fillTriangle(DrawContext ctx, float[][] pts, int color) {
+        // Sort vertices by Y
+        float[][] sorted = pts.clone();
+        if (sorted[0][1] > sorted[1][1]) { float[] t = sorted[0]; sorted[0] = sorted[1]; sorted[1] = t; }
+        if (sorted[1][1] > sorted[2][1]) { float[] t = sorted[1]; sorted[1] = sorted[2]; sorted[2] = t; }
+        if (sorted[0][1] > sorted[1][1]) { float[] t = sorted[0]; sorted[0] = sorted[1]; sorted[1] = t; }
+
+        float y0 = sorted[0][1], y1 = sorted[1][1], y2 = sorted[2][1];
+        float x0 = sorted[0][0], x1 = sorted[1][0], x2 = sorted[2][0];
+
+        if ((int) y2 == (int) y0) return; // degenerate
+
+        for (int scanY = (int) y0; scanY <= (int) y2; scanY++) {
+            float t02 = (y2 - y0) != 0 ? (scanY - y0) / (y2 - y0) : 0;
+            float xa = x0 + t02 * (x2 - x0);
+            float xb;
+            if (scanY < (int) y1 || y1 == y0) {
+                float t01 = (y1 - y0) != 0 ? (scanY - y0) / (y1 - y0) : 0;
+                t01 = MathHelper.clamp(t01, 0, 1);
+                xb = x0 + t01 * (x1 - x0);
+            } else {
+                float t12 = (y2 - y1) != 0 ? (scanY - y1) / (y2 - y1) : 0;
+                t12 = MathHelper.clamp(t12, 0, 1);
+                xb = x1 + t12 * (x2 - x1);
+            }
+            int left = (int) Math.min(xa, xb);
+            int right = (int) Math.max(xa, xb);
+            if (right > left) {
+                ctx.fill(left, scanY, right, scanY + 1, color);
+            }
+        }
+    }
+
+    // =========================================================================
+    // Entity / waypoint markers
+    // =========================================================================
+
+    private void renderMarker(DrawContext ctx, double wx, double wz, double px, double pz,
+                               float yaw, float cx, float cy, float radius, int color) {
+        float[] pos = worldToMap(wx, wz, px, pz, yaw, cx, cy, radius);
+        if (pos == null) return;
+
+        float pSize = markerScale.get().floatValue();
+
+        if (markerStyle.is("Diamonds")) {
+            drawDiamond(ctx, pos[0], pos[1], pSize + 1, color);
+        } else {
+            // Shadow
+            ctx.fill((int) (pos[0] - pSize), (int) (pos[1] - pSize),
+                     (int) (pos[0] + pSize + 1), (int) (pos[1] + pSize + 1),
+                     darken(color, 80));
+            // Dot
+            ctx.fill((int) (pos[0] - pSize + 0.5f), (int) (pos[1] - pSize + 0.5f),
+                     (int) (pos[0] + pSize + 0.5f), (int) (pos[1] + pSize + 0.5f),
+                     color);
+        }
+    }
+
+    private void renderWaypoint(DrawContext ctx, WaypointManager.Waypoint wp,
+                                 double px, double pz, float yaw,
+                                 float cx, float cy, float radius) {
+        float[] pos = worldToMap(wp.x(), wp.z(), px, pz, yaw, cx, cy, radius);
+        if (pos == null) return;
+
+        float pSize = markerScale.get().floatValue() + 0.5f;
+        drawDiamond(ctx, pos[0], pos[1], pSize + 1, 0xFF00FFEE);
+
+        // Label
+        ctx.getMatrices().pushMatrix();
+        ctx.getMatrices().scale(0.6f, 0.6f);
+        float sx = pos[0] / 0.6f;
+        float sy = (pos[1] - pSize - 5) / 0.6f;
+        ctx.drawCenteredTextWithShadow(mc.textRenderer, wp.name(), (int) sx, (int) sy, 0xFF00FFEE);
+        ctx.getMatrices().popMatrix();
+    }
+
+    private void drawDiamond(DrawContext ctx, float x, float y, float size, int color) {
+        // Draw a diamond as 4 small rects rotated 45 degrees (approximation)
+        int s = (int) size;
+        for (int i = 0; i <= s; i++) {
+            int w = s - i;
+            // top half
+            ctx.fill((int) x - w, (int) y - i, (int) x + w + 1, (int) y - i + 1, color);
+            // bottom half
+            ctx.fill((int) x - w, (int) y + i, (int) x + w + 1, (int) y + i + 1, color);
+        }
+    }
+
+    private float[] worldToMap(double wx, double wz, double px, double pz,
+                                float yaw, float cx, float cy, float radius) {
+        double diffX = wx - px;
+        double diffZ = wz - pz;
+
         float mapX = (float) (diffX * zoom.get().doubleValue());
         float mapZ = (float) (diffZ * zoom.get().doubleValue());
 
@@ -274,69 +442,143 @@ public class Minimap extends Module {
         float cos = MathHelper.cos(angle);
         float sin = MathHelper.sin(angle);
 
-        float rotatedX = mapX * cos + mapZ * sin;
-        float rotatedZ = mapZ * cos - mapX * sin;
-
-        float finalX = centerX + rotatedX;
-        float finalY = centerY - rotatedZ;
-        float pSize = markerScale.get().floatValue();
+        float rotX = mapX * cos + mapZ * sin;
+        float rotZ = mapZ * cos - mapX * sin;
 
         if (circular.get()) {
-            float distSq = rotatedX * rotatedX + rotatedZ * rotatedZ;
-            if (distSq < radius * radius) {
-                drawPoint(context, finalX, finalY, color, pSize);
-            }
+            if (rotX * rotX + rotZ * rotZ >= radius * radius) return null;
         } else {
-            if (Math.abs(rotatedX) <= radius && Math.abs(rotatedZ) <= radius) {
-                drawPoint(context, finalX, finalY, color, pSize);
-            }
+            if (Math.abs(rotX) > radius || Math.abs(rotZ) > radius) return null;
+        }
+
+        return new float[]{cx + rotX, cy - rotZ};
+    }
+
+    // =========================================================================
+    // Compass labels
+    // =========================================================================
+
+    private void drawCompassLabels(DrawContext ctx, float cx, float cy, float radius, float yaw) {
+        float angle = (float) Math.toRadians(yaw);
+        float cos = MathHelper.cos(angle);
+        float sin = MathHelper.sin(angle);
+
+        String[] labels = {"N", "E", "S", "W"};
+        int[] colors = {0xFFFF5555, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF}; // N=red, rest=white
+        double[][] dirs = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
+
+        float labelDist = radius + 10;
+
+        for (int i = 0; i < 4; i++) {
+            float dx = (float) dirs[i][0];
+            float dz = (float) dirs[i][1];
+
+            float nx = dx * cos + dz * sin;
+            float nz = dz * cos - dx * sin;
+
+            float dist = (float) Math.sqrt(nx * nx + nz * nz);
+            if (dist == 0) continue;
+            nx = nx / dist * labelDist;
+            nz = nz / dist * labelDist;
+
+            float lx = cx + nx;
+            float ly = cy - nz;
+
+            ctx.getMatrices().pushMatrix();
+            ctx.getMatrices().scale(0.7f, 0.7f);
+            float sx = lx / 0.7f;
+            float sy = (ly - 3) / 0.7f;
+            ctx.drawCenteredTextWithShadow(mc.textRenderer, labels[i], (int) sx, (int) sy, colors[i]);
+            ctx.getMatrices().popMatrix();
         }
     }
 
-    private void drawPoint(DrawContext context, float x, float y, int color, float size) {
-        context.fill((int)(x - size), (int)(y - size), (int)(x + size), (int)(y + size), color | 0xFF000000);
+    // =========================================================================
+    // Info panel — semi-transparent pill below the map
+    // =========================================================================
+
+    private void drawInfoPanel(DrawContext ctx, float cx, float topY, float radius) {
+        String coords = (int) mc.player.getX() + ", " + (int) mc.player.getY() + ", " + (int) mc.player.getZ();
+        String biome = mc.world.getBiome(mc.player.getBlockPos())
+                .getKey().map(k -> k.getValue().getPath()).orElse("Unknown");
+        biome = formatBiome(biome);
+
+        float panelW = Math.max(radius * 1.4f, 90f);
+        float panelH = 22f;
+        float panelX = cx - panelW / 2f;
+        float panelY = topY + 16f;
+
+        // Panel background
+        int panelBg = 0xB0101020;
+        ctx.fill((int) panelX, (int) panelY, (int) (panelX + panelW), (int) (panelY + panelH), panelBg);
+        // Panel border
+        int[] accent = getAccentColor();
+        int panelBorder = 0x60000000 | (accent[0] << 16) | (accent[1] << 8) | accent[2];
+        drawRectBorder(ctx, (int) panelX, (int) panelY, (int) panelW, (int) panelH, panelBorder);
+
+        // Text
+        ctx.getMatrices().pushMatrix();
+        ctx.getMatrices().scale(0.7f, 0.7f);
+        float tx = cx / 0.7f;
+        float ty1 = (panelY + 3f) / 0.7f;
+        float ty2 = (panelY + 12f) / 0.7f;
+        ctx.drawCenteredTextWithShadow(mc.textRenderer, coords, (int) tx, (int) ty1, 0xFFCCCCCC);
+        ctx.drawCenteredTextWithShadow(mc.textRenderer, biome, (int) tx, (int) ty2, 0xFF88AAAA);
+        ctx.getMatrices().popMatrix();
     }
 
-    private void drawCircle(DrawContext context, float centerX, float centerY, float radius, int color) {
-        for (int i = (int) -radius; i <= radius; i++) {
-            int width = (int) Math.sqrt(radius * radius - i * i);
-            context.fill((int) (centerX - width), (int) (centerY + i), (int) (centerX + width), (int) (centerY + i + 1), color);
+    private String formatBiome(String raw) {
+        if (raw == null || raw.isEmpty()) return "Unknown";
+        return raw.substring(0, 1).toUpperCase() + raw.substring(1).replace("_", " ");
+    }
+
+    // =========================================================================
+    // Drawing primitives
+    // =========================================================================
+
+    /** Filled circle via horizontal scanlines. */
+    private void fillCircle(DrawContext ctx, float cx, float cy, float radius, int color) {
+        int r = (int) radius;
+        for (int dy = -r; dy <= r; dy++) {
+            int w = (int) Math.sqrt(radius * radius - dy * dy);
+            ctx.fill((int) (cx - w), (int) (cy + dy), (int) (cx + w), (int) (cy + dy + 1), color);
         }
     }
 
-    private void drawCircleBorder(DrawContext context, float centerX, float centerY, float radius, int color) {
-        int segments = 90;
-        for (int i = 0; i < segments; i++) {
-            float angle = (float) (i * 2 * Math.PI / segments);
-            float nextAngle = (float) ((i + 1) * 2 * Math.PI / segments);
-            
-            float x1 = (float) (centerX + Math.cos(angle) * radius);
-            float y1 = (float) (centerY + Math.sin(angle) * radius);
-            float x2 = (float) (centerX + Math.cos(nextAngle) * radius);
-            float y2 = (float) (centerY + Math.sin(nextAngle) * radius);
-            
-            drawLine(context, x1, y1, x2, y2, color);
+    /** Ring between innerRadius and outerRadius using scanlines. */
+    private void drawRing(DrawContext ctx, float cx, float cy, float innerR, float outerR, int color) {
+        int outer = (int) Math.ceil(outerR);
+        float innerSq = innerR * innerR;
+        float outerSq = outerR * outerR;
+
+        for (int dy = -outer; dy <= outer; dy++) {
+            float dySq = dy * dy;
+            if (dySq > outerSq) continue;
+
+            int outerW = (int) Math.sqrt(outerSq - dySq);
+            int innerW = dySq < innerSq ? (int) Math.sqrt(innerSq - dySq) : 0;
+
+            // Left slice
+            ctx.fill((int) (cx - outerW), (int) (cy + dy), (int) (cx - innerW), (int) (cy + dy + 1), color);
+            // Right slice
+            ctx.fill((int) (cx + innerW), (int) (cy + dy), (int) (cx + outerW), (int) (cy + dy + 1), color);
         }
     }
 
-    private void drawLine(DrawContext context, float x1, float y1, float x2, float y2, int color) {
-        float dx = x2 - x1;
-        float dy = y2 - y1;
-        float dist = (float) Math.sqrt(dx * dx + dy * dy);
-        if (dist == 0) return;
-        
-        float stepX = dx / dist;
-        float stepY = dy / dist;
-        
-        for (int i = 0; i < dist; i++) {
-            context.fill((int)(x1 + stepX * i), (int)(y1 + stepY * i), (int)(x1 + stepX * i + 1), (int)(y1 + stepY * i + 1), color);
-        }
+    /** 1px rectangle border. */
+    private void drawRectBorder(DrawContext ctx, int x, int y, int w, int h, int color) {
+        ctx.fill(x, y, x + w, y + 1, color);             // top
+        ctx.fill(x, y + h - 1, x + w, y + h, color);     // bottom
+        ctx.fill(x, y, x + 1, y + h, color);              // left
+        ctx.fill(x + w - 1, y, x + w, y + h, color);      // right
     }
 
-    private void drawRectBorder(DrawContext context, int x, int y, int width, int height, int color) {
-        context.fill(x, y, x + width, y + 1, color);
-        context.fill(x, y + height - 1, x + width, y + height, color);
-        context.fill(x, y, x + 1, y + height, color);
-        context.fill(x + width - 1, y, x + width, y + height, color);
+    /** Darken a color by reducing RGB. */
+    private int darken(int color, int amount) {
+        int a = (color >> 24) & 0xFF;
+        int r = Math.max(0, ((color >> 16) & 0xFF) - amount);
+        int g = Math.max(0, ((color >> 8) & 0xFF) - amount);
+        int b = Math.max(0, (color & 0xFF) - amount);
+        return (a << 24) | (r << 16) | (g << 8) | b;
     }
 }

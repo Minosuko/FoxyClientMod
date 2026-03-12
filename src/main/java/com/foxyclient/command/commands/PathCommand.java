@@ -7,7 +7,7 @@ import net.minecraft.util.math.BlockPos;
 
 public class PathCommand extends Command {
     public PathCommand() {
-        super("path", "Show pathfinding status", ".path");
+        super("path", "Show current Baritone path", "path");
     }
 
     @Override

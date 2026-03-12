@@ -6,7 +6,7 @@ import com.foxyclient.command.Command;
 
 public class BuildCommand extends Command {
     public BuildCommand() {
-        super("build", "Build a structure", ".build <sizeX> <sizeY> <sizeZ>");
+        super("build", "Build a structure using Baritone", "build <file>");
     }
 
     @Override

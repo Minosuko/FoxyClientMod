@@ -6,7 +6,7 @@ import com.foxyclient.command.Command;
 
 public class ChopCommand extends Command {
     public ChopCommand() {
-        super("chop", "Auto chop trees", ".chop [radius]");
+        super("chop", "Chop nearby trees using Baritone", "chop [radius]");
     }
 
     @Override

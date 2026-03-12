@@ -5,7 +5,7 @@ import com.foxyclient.command.Command;
 
 public class ResumeCommand extends Command {
     public ResumeCommand() {
-        super("resume", "Resume paused task", ".resume");
+        super("resume", "Resume paused Baritone task", "resume");
     }
 
     @Override

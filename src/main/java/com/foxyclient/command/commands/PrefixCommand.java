@@ -5,7 +5,7 @@ import com.foxyclient.command.Command;
 
 public class PrefixCommand extends Command {
     public PrefixCommand() {
-        super("prefix", "Change command prefix", ".prefix <char>");
+        super("prefix", "Change command prefix", "prefix <char>");
     }
 
     @Override

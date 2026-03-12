@@ -6,7 +6,7 @@ import com.foxyclient.command.Command;
 
 public class FarmCommand extends Command {
     public FarmCommand() {
-        super("farm", "Auto farm crops", ".farm [radius]");
+        super("farm", "Auto farm crops", "farm [radius]");
     }
 
     @Override

@@ -6,7 +6,7 @@ import com.foxyclient.module.render.OreSim;
 
 public class SeedCommand extends Command {
     public SeedCommand() {
-        super("seed", "Set world seed for OreSim", ".seed <seed>");
+        super("seed", "View or set the world seed", "seed [value]");
     }
 
     @Override

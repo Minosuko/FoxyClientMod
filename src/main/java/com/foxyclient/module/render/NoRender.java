@@ -18,6 +18,7 @@ public class NoRender extends Module {
     private final BoolSetting totem = addSetting(new BoolSetting("TotemAnim", "Disable totem animation", false));
     private final BoolSetting particles = addSetting(new BoolSetting("Particles", "Reduce particles", false));
     private final BoolSetting armor = addSetting(new BoolSetting("Armor", "Hide own armor", false));
+    private final BoolSetting hideItems = addSetting(new BoolSetting("HideItems", "Hide dropped items", false));
 
     public NoRender() {
         super("NoRender", "Disable visual effects", Category.RENDER);
@@ -33,4 +34,5 @@ public class NoRender extends Module {
     public boolean noTotem() { return isEnabled() && totem.get(); }
     public boolean noParticles() { return isEnabled() && particles.get(); }
     public boolean noArmor() { return isEnabled() && armor.get(); }
+    public boolean noItems() { return isEnabled() && hideItems.get(); }
 }

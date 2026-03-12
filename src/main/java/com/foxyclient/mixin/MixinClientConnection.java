@@ -14,32 +14,57 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ClientConnection.class)
 public class MixinClientConnection {
 
-    // ThreadLocal to hold the event so both modifySendPacket and onSendPacket can share it
-    // Wait, simpler: just let ModifyVariable return the new packet, and another Inject for cancel.
-    // Instead of posting twice, we can just mixin to "send" and replace it, and cancel if the event is cancelled.
-    private PacketEvent.Send currentSendEvent;
+    // ThreadLocal to safely share event between ModifyVariable and Inject on the same call
+    private static final ThreadLocal<PacketEvent.Send> currentSendEvent = new ThreadLocal<>();
+    private static final ThreadLocal<PacketEvent.Receive> currentReceiveEvent = new ThreadLocal<>();
 
     @ModifyVariable(method = "send(Lnet/minecraft/network/packet/Packet;)V", at = @At("HEAD"), argsOnly = true)
     private Packet<?> modifySendPacket(Packet<?> packet) {
-        if (FoxyClient.INSTANCE == null) return packet;
-        currentSendEvent = new PacketEvent.Send(packet);
-        FoxyClient.INSTANCE.getEventBus().post(currentSendEvent);
-        return currentSendEvent.getPacket(); // Allow event handlers to replace the packet
+        try {
+            if (FoxyClient.INSTANCE == null) return packet;
+            PacketEvent.Send event = new PacketEvent.Send(packet);
+            currentSendEvent.set(event);
+            FoxyClient.INSTANCE.getEventBus().post(event);
+            return event.getPacket();
+        } catch (Exception e) {
+            return packet;
+        }
     }
 
     @Inject(method = "send(Lnet/minecraft/network/packet/Packet;)V", at = @At("HEAD"), cancellable = true)
     private void onSendPacket(Packet<?> packet, CallbackInfo ci) {
-        if (currentSendEvent != null && currentSendEvent.isCancelled()) {
-            ci.cancel();
+        try {
+            PacketEvent.Send event = currentSendEvent.get();
+            if (event != null && event.isCancelled()) {
+                ci.cancel();
+            }
+        } finally {
+            currentSendEvent.remove();
         }
-        currentSendEvent = null; // Reset
+    }
+
+    @ModifyVariable(method = "channelRead0(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/packet/Packet;)V", at = @At("HEAD"), argsOnly = true)
+    private Packet<?> modifyReceivePacket(Packet<?> packet) {
+        try {
+            if (FoxyClient.INSTANCE == null) return packet;
+            PacketEvent.Receive event = new PacketEvent.Receive(packet);
+            currentReceiveEvent.set(event);
+            FoxyClient.INSTANCE.getEventBus().post(event);
+            return event.getPacket();
+        } catch (Exception e) {
+            return packet;
+        }
     }
 
     @Inject(method = "channelRead0(Lio/netty/channel/ChannelHandlerContext;Lnet/minecraft/network/packet/Packet;)V", at = @At("HEAD"), cancellable = true)
     private void onReceivePacket(ChannelHandlerContext context, Packet<?> packet, CallbackInfo ci) {
-        if (FoxyClient.INSTANCE == null) return;
-        PacketEvent.Receive event = new PacketEvent.Receive(packet);
-        FoxyClient.INSTANCE.getEventBus().post(event);
-        if (event.isCancelled()) ci.cancel();
+        try {
+            PacketEvent.Receive event = currentReceiveEvent.get();
+            if (event != null && event.isCancelled()) {
+                ci.cancel();
+            }
+        } finally {
+            currentReceiveEvent.remove();
+        }
     }
 }

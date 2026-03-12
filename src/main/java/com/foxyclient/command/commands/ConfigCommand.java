@@ -5,7 +5,7 @@ import com.foxyclient.command.Command;
 
 public class ConfigCommand extends Command {
     public ConfigCommand() {
-        super("config", "Save or load config", ".config <save|load>");
+        super("config", "Save or load configuration", "config <save|load> [name]");
     }
 
     @Override

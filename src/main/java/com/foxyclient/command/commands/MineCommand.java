@@ -5,7 +5,7 @@ import com.foxyclient.command.Command;
 
 public class MineCommand extends Command {
     public MineCommand() {
-        super("mine", "Mine a specific block type", ".mine <block>");
+        super("mine", "Mine blocks using Baritone", "mine <block>");
     }
 
     @Override

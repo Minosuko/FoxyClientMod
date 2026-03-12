@@ -24,27 +24,34 @@ public class MixinKeyboardInput {
         
         int action = -1;
         try {
-            // class_11908 likely contains the key action (Press/Release/Repeat).
-            // We use reflection to extract it.
-            java.lang.reflect.Method m = actionObj.getClass().getMethod("action");
-            action = (int) m.invoke(actionObj);
-        } catch (Exception e) {
-            try {
-                // Try a fallback to toString() or other common methods
-                String s = actionObj.toString().toLowerCase();
-                if (s.contains("press")) action = 1;
-                else if (s.contains("release")) action = 0;
-                else if (s.contains("repeat")) action = 2;
-                else action = 1; // Default
-            } catch (Exception ignored) {
-                action = 1;
+            // In 1.21.11, actionObj is a KeyInput record (class_11908).
+            // Its fields are (int key, int scancode, KeyAction action, int modifiers).
+            // We find the accessor method for `action` by checking which method returns an Enum.
+            for (java.lang.reflect.Method m : actionObj.getClass().getDeclaredMethods()) {
+                if (m.getReturnType().isEnum()) {
+                    Object enumVal = m.invoke(actionObj);
+                    // The ordinals in KeyAction map to GLFW actions: 0=PRESS, 1=RELEASE, 2=REPEAT
+                    // Wait, we need to map the Enum name to exactly 1 (press), 0 (release), 2 (repeat)
+                    String enumName = ((Enum<?>) enumVal).name().toLowerCase();
+                    if (enumName.contains("press")) action = 1;
+                    else if (enumName.contains("release")) action = 0;
+                    else if (enumName.contains("repeat")) action = 2;
+                    else {
+                        // Fallback using ordinal. Often PRESS is first, then RELEASE, then REPEAT, or similar.
+                        // We will just use ordinal fallback if names don't match, or log it.
+                        action = ((Enum<?>) enumVal).ordinal();
+                        // GLFW action values: RELEASE = 0, PRESS = 1, REPEAT = 2.
+                    }
+                    break; // found the action Enum
+                }
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+            action = 1; // Default
         }
 
         // Action: 1 = Press, 0 = Release, 2 = Repeat
         FoxyClient.INSTANCE.getEventBus().post(new KeyEvent(key, action));
-        if (action == 1) { // Key press
-            FoxyClient.INSTANCE.getModuleManager().onKey(key, action);
-        }
+        FoxyClient.INSTANCE.getModuleManager().onKey(key, action);
     }
 }

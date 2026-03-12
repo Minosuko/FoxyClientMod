@@ -27,6 +27,7 @@ public class CommandManager {
         register(new FriendCommand());
         register(new WaypointCommand());
         register(new DupeCommand());
+        register(new EnderChestCommand());
 
         // Baritone commands
         register(new TunnelCommand());
