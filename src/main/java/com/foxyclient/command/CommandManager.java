@@ -41,6 +41,9 @@ public class CommandManager {
         register(new CancelCommand());
         register(new GoalCommand());
         register(new PathCommand());
+        
+        // UI commands
+        register(new MacroCommand());
     }
 
     private void register(Command command) {

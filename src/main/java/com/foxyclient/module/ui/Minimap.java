@@ -18,6 +18,16 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.MapColor;
 import net.minecraft.world.Heightmap;
+import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.client.render.*;
+import net.minecraft.client.gl.RenderPipelines;
+import net.minecraft.client.texture.TextureSetup;
+import net.minecraft.client.gui.render.state.SimpleGuiElementRenderState;
+import net.minecraft.client.gui.ScreenRect;
+import com.mojang.blaze3d.pipeline.RenderPipeline;
+import org.joml.Matrix3x2f;
+import org.joml.Matrix3x2fc;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Premium Minimap HUD module.
@@ -187,9 +197,9 @@ public class Minimap extends Module {
     // =========================================================================
 
     private void drawTerrain(DrawContext ctx, float cx, float cy, float radius, double px, double pz, float yaw) {
-        float z = zoom.get().floatValue();
-        int res = 1; // sample every 1 block
-        int range = (int) (radius / z) + res;
+        float zoomVal = zoom.get().floatValue();
+        int res = 1;
+        int range = (int) (radius / zoomVal) + res;
 
         float angle = (float) Math.toRadians(yaw);
         float cos = MathHelper.cos(angle);
@@ -199,38 +209,102 @@ public class Minimap extends Module {
         int baseX = (int) Math.floor(px);
         int baseZ = (int) Math.floor(pz);
 
+        float pixelSize = Math.max(1, (int) Math.ceil(zoomVal));
+        boolean isCircular = circular.get();
+
+        // Populate cache before rendering
         for (int dx = -range; dx <= range; dx += res) {
             for (int dz = -range; dz <= range; dz += res) {
-                float mapX = dx * z;
-                float mapZ = dz * z;
-
-                float rotX = mapX * cos + mapZ * sin;
-                float rotZ = mapZ * cos - mapX * sin;
-
-                if (circular.get()) {
-                    if (rotX * rotX + rotZ * rotZ > radiusSq) continue;
-                } else {
-                    if (Math.abs(rotX) > radius || Math.abs(rotZ) > radius) continue;
-                }
-
-                int worldX = baseX + dx;
-                int worldZ = baseZ + dz;
-
-                int color = getCachedColor(worldX, worldZ);
-                if (color == 0) continue;
-
-                // Elevation shading: compare to south neighbor
-                int neighborHeight = getCachedHeight(worldX, worldZ + 1);
-                int thisHeight = getCachedHeight(worldX, worldZ);
-                int delta = thisHeight - neighborHeight;
-                color = shadeColor(color, delta);
-
-                float finalX = cx + rotX;
-                float finalY = cy - rotZ;
-                int pixelSize = Math.max(1, (int) Math.ceil(z));
-
-                ctx.fill((int) finalX, (int) finalY, (int) (finalX + pixelSize), (int) (finalY + pixelSize), color | 0xFF000000);
+                getCachedColor(baseX + dx, baseZ + dz);
             }
+        }
+
+        // Use a custom render state to batch all pixels into one element.
+        // This avoids creating thousands of ColoredQuadGuiElementRenderState objects.
+        TerrainRenderState terrainState = new TerrainRenderState(
+            RenderPipelines.GUI,
+            TextureSetup.empty(),
+            new Matrix3x2f(ctx.getMatrices()),
+            terrainCache,
+            terrainHeightCache,
+            baseX, baseZ, range, res,
+            zoomVal, cos, sin, cx, cy, radius, radiusSq, pixelSize, isCircular,
+            null // Scissor area
+        );
+
+        ctx.state.addSimpleElement(terrainState);
+    }
+
+    private static record TerrainRenderState(
+        RenderPipeline pipeline,
+        TextureSetup textureSetup,
+        Matrix3x2fc pose,
+        int[][] terrainCache,
+        int[][] terrainHeightCache,
+        int baseX, int baseZ, int range, int res,
+        float zoomVal, float cos, float sin, float cx, float cy, float radius, float radiusSq,
+        float pixelSize, boolean isCircular,
+        @Nullable ScreenRect scissorArea
+    ) implements SimpleGuiElementRenderState {
+
+        @Override
+        public void setupVertices(VertexConsumer vertices) {
+            for (int dx = -range; dx <= range; dx += res) {
+                int worldX = baseX + dx;
+                float mapX = dx * zoomVal;
+                float rotX_part1 = mapX * cos;
+                float rotX_part2 = -mapX * sin;
+
+                for (int dz = -range; dz <= range; dz += res) {
+                    float mapZ = dz * zoomVal;
+                    float rotX = rotX_part1 + mapZ * sin;
+                    float rotZ = mapZ * cos + rotX_part2;
+
+                    if (isCircular) {
+                        if (rotX * rotX + rotZ * rotZ > radiusSq) continue;
+                    } else {
+                        if (Math.abs(rotX) > radius || Math.abs(rotZ) > radius) continue;
+                    }
+
+                    int worldZ = baseZ + dz;
+                    // Cache is already populated in drawTerrain
+                    int ix = Math.floorMod(worldX, CACHE_SIZE);
+                    int iz = Math.floorMod(worldZ, CACHE_SIZE);
+                    int color = terrainCache[ix][iz];
+                    if (color == 0) continue;
+
+                    int thisHeight = terrainHeightCache[ix][iz];
+                    int neighborHeight = terrainHeightCache[ix][Math.floorMod(worldZ + 1, CACHE_SIZE)];
+                    int delta = thisHeight - neighborHeight;
+
+                    // Manual shading logic (matching shadeColor)
+                    int r = (color >> 16) & 0xFF;
+                    int g = (color >> 8) & 0xFF;
+                    int b = color & 0xFF;
+                    int shift = MathHelper.clamp(delta * 12, -40, 40);
+                    r = MathHelper.clamp(r + shift, 0, 255);
+                    g = MathHelper.clamp(g + shift, 0, 255);
+                    b = MathHelper.clamp(b + shift, 0, 255);
+                    
+                    float fr = r / 255f;
+                    float fg = g / 255f;
+                    float fb = b / 255f;
+
+                    float finalX = cx + rotX;
+                    float finalY = cy - rotZ;
+
+                    vertices.vertex(pose, finalX, finalY).color(fr, fg, fb, 1.0f);
+                    vertices.vertex(pose, finalX, finalY + pixelSize).color(fr, fg, fb, 1.0f);
+                    vertices.vertex(pose, finalX + pixelSize, finalY + pixelSize).color(fr, fg, fb, 1.0f);
+                    vertices.vertex(pose, finalX + pixelSize, finalY).color(fr, fg, fb, 1.0f);
+                }
+            }
+        }
+
+        @Override
+        public @Nullable ScreenRect bounds() {
+            // Roughly cover the minimap area
+            return new ScreenRect((int)(cx - radius), (int)(cy - radius), (int)(radius * 2), (int)(radius * 2));
         }
     }
 

@@ -358,6 +358,9 @@ public class ModuleManager {
                 if (m.getName().equalsIgnoreCase("Freelook")) {
                     if (action == 1) m.setEnabled(true);
                     else if (action == 0) m.setEnabled(false);
+                } else if (m.getName().equalsIgnoreCase("Zoom")) {
+                    if (action == 1) m.setEnabled(true);
+                    // Zoom now handles its own release animation and disablement via KeyEvent handler
                 } else if (action == 1) { // Normal toggle on press
                     m.toggle();
                 }

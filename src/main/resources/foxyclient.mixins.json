@@ -13,6 +13,7 @@
         "MixinWorldRenderer",
         "MixinKeyboardInput",
         "MixinInGameHud",
+        "MixinMouse",
         "MixinLivingEntity",
         "MixinGameRenderer",
         "MixinAbstractClientPlayerEntity",

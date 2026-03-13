@@ -5,19 +5,70 @@ import com.foxyclient.event.EventHandler;
 import com.foxyclient.event.events.KeyEvent;
 import com.foxyclient.module.Category;
 import com.foxyclient.module.Module;
-import com.foxyclient.setting.KeySetting;
-import net.minecraft.network.packet.c2s.play.ClientStatusC2SPacket;
-import org.lwjgl.glfw.GLFW;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+import net.fabricmc.loader.api.FabricLoader;
+
+import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Allows binding custom actions to key combinations (macro system).
+ * Allows binding custom actions/commands to key combinations (macro system).
  */
 public class CustomKeybinds extends Module {
-    private final KeySetting slot1Key = addSetting(new KeySetting("Slot1Key", "Keybind for action 1 (Toggle last used module)", GLFW.GLFW_KEY_UNKNOWN));
-    private final KeySetting slot2Key = addSetting(new KeySetting("Slot2Key", "Keybind for action 2 (Panic disconnect)", GLFW.GLFW_KEY_UNKNOWN));
+    private final Map<Integer, String> macros = new HashMap<>();
+    private final Path macrosFile;
+    private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
     public CustomKeybinds() {
-        super("CustomKeybinds", "Custom key action bindings", Category.UI);
+        super("CustomKeybinds", "Custom key action bindings (macros)", Category.UI);
+        macrosFile = FabricLoader.getInstance().getConfigDir().resolve("foxyclient").resolve("macros.json");
+        loadMacros();
+    }
+
+    public void addMacro(int key, String command) {
+        macros.put(key, command);
+        saveMacros();
+    }
+
+    public void removeMacro(int key) {
+        macros.remove(key);
+        saveMacros();
+    }
+
+    public Map<Integer, String> getMacros() {
+        return macros;
+    }
+
+    private void loadMacros() {
+        if (Files.exists(macrosFile)) {
+            try (Reader reader = Files.newBufferedReader(macrosFile)) {
+                Map<Integer, String> loaded = gson.fromJson(reader, new TypeToken<Map<Integer, String>>(){}.getType());
+                if (loaded != null) {
+                    macros.clear();
+                    macros.putAll(loaded);
+                }
+            } catch (Exception e) {
+                error("Failed to load macros: " + e.getMessage());
+            }
+        }
+    }
+
+    private void saveMacros() {
+        try {
+            Files.createDirectories(macrosFile.getParent());
+            try (Writer writer = Files.newBufferedWriter(macrosFile)) {
+                gson.toJson(macros, writer);
+            }
+        } catch (IOException e) {
+            error("Failed to save macros: " + e.getMessage());
+        }
     }
 
     @EventHandler
@@ -27,20 +78,19 @@ public class CustomKeybinds extends Module {
         if (event.getAction() != 1) return; // Only trigger on press
 
         int key = event.getKey();
-
-        if (slot1Key.get() != GLFW.GLFW_KEY_UNKNOWN && key == slot1Key.get()) {
-            Module lastToggled = FoxyClient.INSTANCE.getModuleManager().getLastToggledModule();
-            if (lastToggled != null) {
-                lastToggled.toggle();
-                info("Toggled module: " + lastToggled.getName());
-            } else {
-                error("No recently toggled module found.");
-            }
-        }
-
-        if (slot2Key.get() != GLFW.GLFW_KEY_UNKNOWN && key == slot2Key.get()) {
-            if (mc.getNetworkHandler() != null) {
-                mc.getNetworkHandler().getConnection().disconnect(net.minecraft.text.Text.literal("[CustomKeybinds] Panic disconnect triggered"));
+        if (macros.containsKey(key)) {
+            String command = macros.get(key);
+            if (command != null && !command.isEmpty()) {
+                if (command.startsWith("/")) {
+                    mc.getNetworkHandler().sendChatCommand(command.substring(1));
+                } else if (command.startsWith(".")) {
+                    // It's a client command, hand it to the CommandManager directly to avoid sending to server
+                    FoxyClient.INSTANCE.getCommandManager().handleChat(command);
+                } else if (command.startsWith("#")) {
+                    FoxyClient.INSTANCE.getCommandManager().handleChat(command);
+                } else {
+                    mc.getNetworkHandler().sendChatMessage(command);
+                }
             }
         }
     }
