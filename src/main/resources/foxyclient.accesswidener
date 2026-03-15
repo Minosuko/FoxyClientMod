@@ -5,3 +5,5 @@ accessible field net/minecraft/entity/Entity onGround Z
 accessible field net/minecraft/entity/Entity horizontalCollision Z
 accessible field net/minecraft/entity/LivingEntity jumpingCooldown I
 
+accessible field net/minecraft/client/MinecraftClient session Lnet/minecraft/client/session/Session;
+mutable field net/minecraft/client/MinecraftClient session Lnet/minecraft/client/session/Session;

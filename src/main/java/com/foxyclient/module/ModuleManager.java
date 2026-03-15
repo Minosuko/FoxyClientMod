@@ -23,6 +23,7 @@ import com.foxyclient.module.player.PotionSaver;
 import com.foxyclient.module.player.SmartEat;
 import com.foxyclient.module.world.*;
 import com.foxyclient.module.misc.*;
+import com.foxyclient.module.misc.Proxy;
 import com.foxyclient.module.exploit.*;
 import com.foxyclient.module.exploit.PingSpoof;
 import com.foxyclient.module.exploit.ServerSync;
@@ -153,6 +154,7 @@ public class ModuleManager {
         register(new Freecam());
         register(new Nametags());
         register(new StorageESP());
+        register(new BowIndicator());
         register(new Freelook());
         register(new WallHack());
         register(new NoRender());
@@ -262,6 +264,7 @@ public class ModuleManager {
         register(new AutoLeave());
         register(new AutoAccept());
         register(new PlayerAlarms());
+        register(new Proxy());
 
         // ====== Exploit (4) ======
         register(new PacketFly());

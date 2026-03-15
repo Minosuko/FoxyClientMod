@@ -2,6 +2,7 @@ package com.foxyclient.mixin;
 
 import com.foxyclient.FoxyClient;
 import com.foxyclient.event.events.PacketEvent;
+import com.foxyclient.module.misc.Proxy;
 import io.netty.channel.ChannelHandlerContext;
 import net.minecraft.network.ClientConnection;
 import net.minecraft.network.packet.Packet;
@@ -10,6 +11,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+import java.net.*;
 
 @Mixin(ClientConnection.class)
 public class MixinClientConnection {
@@ -65,6 +68,42 @@ public class MixinClientConnection {
             }
         } finally {
             currentReceiveEvent.remove();
+        }
+    }
+
+    /**
+     * Installs SOCKS proxy authentication when connecting if the Proxy module is enabled.
+     * The actual socket routing is handled by Netty's proxy handler pipeline.
+     */
+    @Inject(method = "connect", at = @At("HEAD"))
+    private static void onConnect(CallbackInfo ci) {
+        try {
+            if (FoxyClient.INSTANCE == null) return;
+            Proxy proxyModule = FoxyClient.INSTANCE.getModuleManager().getModule(Proxy.class);
+            if (proxyModule == null || !proxyModule.isEnabled()) {
+                Authenticator.setDefault(null);
+                return;
+            }
+
+            if (proxyModule.needsAuth()) {
+                Authenticator.setDefault(new Authenticator() {
+                    @Override
+                    protected PasswordAuthentication getPasswordAuthentication() {
+                        return new PasswordAuthentication(
+                            proxyModule.username.get(),
+                            proxyModule.password.get().toCharArray()
+                        );
+                    }
+                });
+            }
+
+            // Set system properties for SOCKS proxy
+            System.setProperty("socksProxyHost", proxyModule.host.get());
+            System.setProperty("socksProxyPort", String.valueOf(proxyModule.port.get().intValue()));
+
+            FoxyClient.LOGGER.info("[FoxyClient] Proxy: Routing through {}:{}", proxyModule.host.get(), proxyModule.port.get().intValue());
+        } catch (Exception e) {
+            FoxyClient.LOGGER.error("[FoxyClient] Proxy setup error", e);
         }
     }
 }

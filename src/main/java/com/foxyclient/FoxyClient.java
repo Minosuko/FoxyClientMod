@@ -8,6 +8,7 @@ import com.foxyclient.module.Module;
 import com.foxyclient.module.ModuleManager;
 import com.foxyclient.module.ui.HUD;
 import com.foxyclient.pathfinding.PathFinder;
+import com.foxyclient.util.AltManager;
 import com.foxyclient.util.FriendsManager;
 import com.foxyclient.util.WaypointManager;
 import net.fabricmc.api.ClientModInitializer;
@@ -38,6 +39,7 @@ public class FoxyClient implements ClientModInitializer {
     private PathFinder pathFinder;
     private FriendsManager friendsManager;
     private WaypointManager waypointManager;
+    private AltManager altManager;
     private ClickGUI clickGUI;
 
     @Override
@@ -49,6 +51,7 @@ public class FoxyClient implements ClientModInitializer {
         eventBus = new EventBus();
         friendsManager = new FriendsManager();
         waypointManager = new WaypointManager();
+        altManager = new AltManager();
         commandManager = new CommandManager();
         pathFinder = new PathFinder();
         moduleManager = new ModuleManager();
@@ -256,4 +259,5 @@ public class FoxyClient implements ClientModInitializer {
     public PathFinder getPathFinder() { return pathFinder; }
     public FriendsManager getFriendsManager() { return friendsManager; }
     public WaypointManager getWaypointManager() { return waypointManager; }
+    public AltManager getAltManager() { return altManager; }
 }

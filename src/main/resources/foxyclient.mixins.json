@@ -45,7 +45,11 @@
         "MixinAbstractBlockState",
         "MixinBlock",
         "MixinBlockRenderLayers",
-        "MixinBlockEntityRenderManager"
+        "MixinBlockEntityRenderManager",
+        "MixinTitleScreen",
+        "MixinMultiplayerScreen",
+        "ScreenAccessor",
+        "MixinMinecraftClient"
     ],
     "injectors": {
         "defaultRequire": 1
