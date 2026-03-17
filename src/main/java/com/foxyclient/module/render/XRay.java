@@ -51,12 +51,16 @@ public class XRay extends Module {
 
     @Override
     public void onEnable() {
-        mc.worldRenderer.reload();
+        if (mc != null && mc.worldRenderer != null) {
+            mc.worldRenderer.reload();
+        }
     }
 
     @Override
     public void onDisable() {
-        mc.worldRenderer.reload();
+        if (mc != null && mc.worldRenderer != null) {
+            mc.worldRenderer.reload();
+        }
     }
 
     // ── Public API (called by mixins) ───────────────────────────────────

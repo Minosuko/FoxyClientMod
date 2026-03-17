@@ -209,9 +209,14 @@ public class ClickGUI extends Screen {
     @Override
     public boolean charTyped(CharInput charInput) {
         if (listeningKeybind != null) return true; // Absorb during keybind listen
+        
+        // Defensive check for Unicode characters
         if (charInput.isValidChar()) {
-            searchQuery += charInput.asString();
-            return true;
+            String s = charInput.asString();
+            if (s != null && !s.isEmpty()) {
+                searchQuery += s;
+                return true;
+            }
         }
         return false;
     }

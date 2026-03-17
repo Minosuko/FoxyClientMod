@@ -49,7 +49,11 @@
         "MixinTitleScreen",
         "MixinMultiplayerScreen",
         "ScreenAccessor",
-        "MixinMinecraftClient"
+        "MinecraftClientAccessor",
+        "PostEffectPassAccessor",
+        "PostEffectProcessorAccessor",
+        "GameRendererAccessor",
+        "WorldRendererAccessor"
     ],
     "injectors": {
         "defaultRequire": 1

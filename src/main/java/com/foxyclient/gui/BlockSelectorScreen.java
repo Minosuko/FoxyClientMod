@@ -241,9 +241,12 @@ public class BlockSelectorScreen extends Screen {
     @Override
     public boolean charTyped(CharInput charInput) {
         if (charInput.isValidChar()) {
-            searchQuery += charInput.asString();
-            rebuildFilter();
-            return true;
+            String s = charInput.asString();
+            if (s != null && !s.isEmpty()) {
+                searchQuery += s;
+                rebuildFilter();
+                return true;
+            }
         }
         return false;
     }

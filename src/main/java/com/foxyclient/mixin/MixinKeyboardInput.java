@@ -21,6 +21,9 @@ public class MixinKeyboardInput {
         if (FoxyClient.INSTANCE == null) return;
         
         int key = input.key();
+        
+        // Filter out invalid keys to prevent Unicode-related crashes in listeners
+        if (key < -1 || key > 1024) return;
 
         FoxyClient.INSTANCE.getEventBus().post(new KeyEvent(key, action));
         FoxyClient.INSTANCE.getModuleManager().onKey(key, action);

@@ -1,19 +1,18 @@
 package com.foxyclient.mixin;
 
-import net.minecraft.client.MinecraftClient;
 import com.foxyclient.mixin_interface.IEntityRenderState;
 import com.foxyclient.FoxyClient;
 import com.foxyclient.module.Module;
-import net.minecraft.client.render.entity.EntityRenderer;
-import net.minecraft.client.render.VertexConsumerProvider;
+import com.foxyclient.module.render.NoRender;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
+import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.client.render.entity.state.EntityRenderState;
 import net.minecraft.client.render.entity.state.LivingEntityRenderState;
 import net.minecraft.client.render.command.OrderedRenderCommandQueue;
 import net.minecraft.client.render.state.CameraRenderState;
-import net.minecraft.entity.EntityType;
-import com.foxyclient.module.render.NoRender;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -54,10 +53,11 @@ public abstract class MixinEntityRenderer<T extends Entity, S extends EntityRend
         }
     }
 
-    @Inject(method = "render", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "render", at = @At("TAIL"))
     private void onRender(S state, MatrixStack matrices, OrderedRenderCommandQueue queue, CameraRenderState cameraState, CallbackInfo ci) {
         if (FoxyClient.INSTANCE == null) return;
-        // Handle NoRender features first
+        
+        // Handle NoRender features
         NoRender noRender = FoxyClient.INSTANCE.getModuleManager().getModule(NoRender.class);
         if (noRender != null && noRender.isEnabled()) {
             if (noRender.noItems() && state.entityType == EntityType.ITEM) {

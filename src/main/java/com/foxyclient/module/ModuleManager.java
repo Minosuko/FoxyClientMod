@@ -152,7 +152,7 @@ public class ModuleManager {
         register(new Tracers());
         register(new Fullbright());
         register(new Freecam());
-        register(new Nametags());
+        // register(new Nametags()); // Removed from RENDER section
         register(new StorageESP());
         register(new BowIndicator());
         register(new Freelook());
@@ -184,6 +184,7 @@ public class ModuleManager {
         register(new PotESP());
         register(new CollectibleESP());
         register(new XRay());
+        register(new MotionBlur());
 
         // ====== Player (11) ======
         register(new AutoEat());
@@ -301,6 +302,7 @@ public class ModuleManager {
         register(new MultiverseAnnihilator());
 
         // ====== UI (6) ======
+        register(new Nametags());
         register(new TotemCounter());
         register(new CombatHUD());
         register(new CrystalStats());
@@ -314,6 +316,7 @@ public class ModuleManager {
         register(new ShulkerView());
         register(new Minimap());
         register(new StorageView());
+        register(new Keystrokes());
 
         // ====== SeedCracker (1) ======
         register(new SeedCrackerModule()).setVisible(false);

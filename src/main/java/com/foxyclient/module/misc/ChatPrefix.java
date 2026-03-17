@@ -33,9 +33,9 @@ public class ChatPrefix extends Module {
             if (original.startsWith("/")) return;
 
             StringBuilder modified = new StringBuilder();
-            if (prefixEnabled.get()) modified.append(prefix);
+            if (prefixEnabled.get() && !original.startsWith(prefix)) modified.append(prefix);
             modified.append(original);
-            if (suffixEnabled.get()) modified.append(suffix);
+            if (suffixEnabled.get() && !original.endsWith(suffix)) modified.append(suffix);
 
             String newMsg = modified.toString();
             if (!newMsg.equals(original)) {

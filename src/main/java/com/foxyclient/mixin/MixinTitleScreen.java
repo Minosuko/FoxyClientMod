@@ -22,6 +22,9 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 public class MixinTitleScreen {
 
     @Unique
+    private static final Identifier BACKGROUND_TEXTURE = Identifier.of("foxyclient", "background.png");
+
+    @Unique
     private static final Identifier FOXYCLIENT_LOGO = Identifier.of("foxyclient", "icon.png");
 
     /**
@@ -30,6 +33,15 @@ public class MixinTitleScreen {
     @Redirect(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/LogoDrawer;draw(Lnet/minecraft/client/gui/DrawContext;IF)V"))
     private void suppressLogo(LogoDrawer logoDrawer, DrawContext context, int screenWidth, float alpha) {
         // Don't render the vanilla logo
+    }
+
+    /**
+     * Inject at the beginning of render to draw the custom background.
+     */
+    @org.spongepowered.asm.mixin.injection.Inject(method = "render", at = @At("HEAD"))
+    private void renderBackground(DrawContext context, int mouseX, int mouseY, float deltaTicks, org.spongepowered.asm.mixin.injection.callback.CallbackInfo ci) {
+        TitleScreen screen = (TitleScreen) (Object) this;
+        context.drawTexture(RenderPipelines.GUI_TEXTURED, BACKGROUND_TEXTURE, 0, 0, 0.0F, 0.0F, screen.width, screen.height, screen.width, screen.height);
     }
 
     /**

@@ -45,6 +45,7 @@ public class FoxyBot extends Module {
 
     @Override
     public void onEnable() {
+        if (nullCheck()) return;
         dispatched = false;
         idleTicks = 0;
         dispatch();
