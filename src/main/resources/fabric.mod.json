@@ -6,9 +6,14 @@
     "name": "FoxyClient",
     "description": "A unified Minecraft client mod combining Meteor, SeedCracker, and Baritone features.",
     "authors": [
-        "FoxyTeam"
+        "Minosuko"
     ],
-    "contact": {},
+    "contact": {
+        "email": "quynhmino206@gmail.com",
+        "website": "https://foxyclient.qzz.io",
+        "issues": "https://github.com/Minosuko/FoxyClientMods/issues",
+        "homepage": "https://foxyclient.qzz.io"
+    },
     "license": "MIT",
     "icon": "assets/foxyclient/icon.png",
     "environment": "client",

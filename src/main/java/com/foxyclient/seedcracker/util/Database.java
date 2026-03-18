@@ -6,7 +6,6 @@ import com.mojang.authlib.exceptions.AuthenticationUnavailableException;
 import com.mojang.authlib.exceptions.InsufficientPrivilegesException;
 import com.foxyclient.seedcracker.config.Config;
 import com.foxyclient.seedcracker.finder.Finder;
-import com.foxyclient.mixin.MinecraftClientAccessor;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;
 import org.jetbrains.annotations.Nullable;
@@ -36,7 +35,7 @@ public class Database {
     public static Text joinFakeServerForAuth() {
         try {
             MinecraftClient client = MinecraftClient.getInstance();
-            ((MinecraftClientAccessor) client).getApiServices().sessionService().joinServer(client.getSession().getUuidOrNull(), client.getSession().getAccessToken(), "seedcrackerx");
+            client.apiServices.sessionService().joinServer(client.getSession().getUuidOrNull(), client.getSession().getAccessToken(), "seedcrackerx");
         }
         catch (AuthenticationUnavailableException authenticationUnavailableException) {
             return Text.translatable("disconnect.loginFailedInfo", Text.translatable("disconnect.loginFailedInfo.serversUnavailable"));

@@ -27,11 +27,11 @@
         "MixinEntity",
         "MixinEntityRenderer",
         "MixinEntityRenderState",
+        "MixinPlayerEntityRenderer",
         "PlayerMoveC2SPacketAccessor",
         "CountPlacementModifierAccessor",
         "HeightRangePlacementModifierAccessor",
         "InputAccessor",
-        "MinecraftClientAccessor",
         "MixinChatInputSuggestor",
         "MixinChatScreen",
         "MixinInputTick",
@@ -49,11 +49,14 @@
         "MixinTitleScreen",
         "MixinMultiplayerScreen",
         "ScreenAccessor",
-        "MinecraftClientAccessor",
         "PostEffectPassAccessor",
         "PostEffectProcessorAccessor",
         "GameRendererAccessor",
-        "WorldRendererAccessor"
+        "WorldRendererAccessor",
+        "MixinPressableWidget",
+        "MixinTextFieldWidget",
+        "MixinSliderWidget",
+        "MixinScreen"
     ],
     "injectors": {
         "defaultRequire": 1

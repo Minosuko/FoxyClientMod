@@ -357,7 +357,7 @@ public class ModuleManager {
     }
 
     public void onKey(int key, int action) {
-        if (action == 2) return; // Ignore repeat
+        if (action == 2 || key == -1) return; // Ignore repeat and unknown keys (Unikey fix)
         
         for (Module m : modules) {
             if (m.getKeybind() == key) {

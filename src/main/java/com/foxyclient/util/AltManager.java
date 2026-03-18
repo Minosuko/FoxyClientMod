@@ -61,8 +61,8 @@ public class AltManager {
                 Optional.empty(),
                 Optional.empty()
             );
-            // Set session via accessor
-            ((com.foxyclient.mixin.MinecraftClientAccessor) (Object) mc).setSession(session);
+            // Set session via access widener
+            mc.session = session;
             FoxyClient.LOGGER.info("[FoxyClient] Logged in as: {}", alt.getUsername());
             return true;
         } catch (Exception e) {

@@ -1,0 +1,11 @@
+{
+  "background_music": {
+    "category": "music",
+    "sounds": [
+      {
+        "name": "foxyclient:background",
+        "stream": true
+      }
+    ]
+  }
+}

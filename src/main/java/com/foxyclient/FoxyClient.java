@@ -54,12 +54,22 @@ public class FoxyClient implements ClientModInitializer {
         altManager = new AltManager();
         commandManager = new CommandManager();
         pathFinder = new PathFinder();
+        
+        LOGGER.info("§6[FoxyClient]§f Initializing Managers...");
+        com.foxyclient.util.FoxySounds.register();
         moduleManager = new ModuleManager();
+        
+        LOGGER.info("§6[FoxyClient]§f Loading Configurations...");
+        com.foxyclient.util.FoxyConfig.INSTANCE.load();
         moduleManager.init();
 
         LOGGER.info("§6[FoxyClient]§f Loaded {} modules.", moduleManager.getModules().size());
         LOGGER.info("§6[FoxyClient]§f {} friends loaded.", friendsManager.getFriends().size());
         LOGGER.info("§6[FoxyClient]§f {} waypoints loaded.", waypointManager.getAll().size());
+        
+        // Initial auto-login check if session already available
+        checkAutoLogin();
+        
         LOGGER.info("§6[FoxyClient]§a FoxyClient initialized successfully!");
     }
 
@@ -67,8 +77,13 @@ public class FoxyClient implements ClientModInitializer {
      * Called every client tick from MixinMinecraftClient.
      */
     public void onTick() {
+        com.foxyclient.util.FoxyMusicManager.tick();
+
         MinecraftClient mc = MinecraftClient.getInstance();
         if (mc.player == null || mc.world == null) return;
+
+        // Auto-login check
+        checkAutoLogin();
 
         // Open ClickGUI on Right Shift
         if (GLFW.glfwGetKey(mc.getWindow().getHandle(), GLFW.GLFW_KEY_RIGHT_SHIFT) == GLFW.GLFW_PRESS) {
@@ -77,13 +92,65 @@ public class FoxyClient implements ClientModInitializer {
                 mc.setScreen(clickGUI);
             }
         }
-
         // Tick pathfinder
         pathFinder.tick();
 
         // Tick SeedCracker data storage to commit pending data
         if (com.foxyclient.seedcracker.FoxySeedCracker.get() != null) {
             com.foxyclient.seedcracker.FoxySeedCracker.get().getDataStorage().tick();
+        }
+    }
+
+    private String lastCheckedToken = null;
+    private boolean isFoxyAccount = false;
+
+    public boolean isFoxyAccount() {
+        return isFoxyAccount;
+    }
+
+    private void checkAutoLogin() {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        if (mc == null || mc.getSession() == null) return;
+
+        String token = mc.getSession().getAccessToken();
+        if (token == null || token.isEmpty()) {
+            isFoxyAccount = false;
+            return;
+        }
+        
+        // Only check if token changed
+        if (token.equals(lastCheckedToken)) return;
+        lastCheckedToken = token;
+
+        try {
+            com.google.gson.JsonObject payload = decodeJWTPayload(token);
+            if (payload != null && payload.has("foxyclient") && payload.get("foxyclient").getAsBoolean()) {
+                this.isFoxyAccount = true;
+                String currentName = mc.getSession().getUsername();
+                if (!com.foxyclient.util.FoxyConfig.INSTANCE.foxyAccountName.get().equals(currentName)) {
+                    LOGGER.info("[FoxyClient] Local Account verified via JWT: {}", currentName);
+                    com.foxyclient.util.FoxyConfig.INSTANCE.foxyAccountName.set(currentName);
+                    com.foxyclient.util.FoxyConfig.INSTANCE.foxyAccountToken.set(token);
+                    com.foxyclient.util.FoxyConfig.INSTANCE.save();
+                }
+            } else {
+                this.isFoxyAccount = false;
+            }
+        } catch (Exception e) {
+            LOGGER.error("[FoxyClient] Failed to decode JWT for auto-login", e);
+            this.isFoxyAccount = false;
+        }
+    }
+
+    private com.google.gson.JsonObject decodeJWTPayload(String jwt) {
+        try {
+            String[] parts = jwt.split("\\.");
+            if (parts.length < 2) return null;
+            
+            String payloadJson = new String(java.util.Base64.getUrlDecoder().decode(parts[1]), java.nio.charset.StandardCharsets.UTF_8);
+            return new com.google.gson.Gson().fromJson(payloadJson, com.google.gson.JsonObject.class);
+        } catch (Exception e) {
+            return null;
         }
     }
 
