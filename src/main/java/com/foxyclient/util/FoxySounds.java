@@ -13,6 +13,7 @@ public class FoxySounds {
     public static final SoundEvent BACKGROUND_MUSIC = SoundEvent.of(BACKGROUND_MUSIC_ID);
 
     public static void register() {
-        Registry.register(Registries.SOUND_EVENT, BACKGROUND_MUSIC_ID, BACKGROUND_MUSIC);
+        // No longer registering in global registries to avoid LAN sync issues.
+        // The sound is still accessible via BACKGROUND_MUSIC_ID and BACKGROUND_MUSIC.
     }
 }

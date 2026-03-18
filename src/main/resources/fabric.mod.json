@@ -26,6 +26,14 @@
     "mixins": [
         "foxyclient.mixins.json"
     ],
+    "custom": {
+        "fabric-api:mod": {
+            "client-only": true
+        },
+        "fabric-networking-api-v1:requires": {
+            "foxyclient": []
+        }
+    },
     "depends": {
         "fabricloader": ">=0.18.0",
         "minecraft": "~1.21.11",
