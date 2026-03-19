@@ -359,6 +359,9 @@ public class ModuleManager {
     public void onKey(int key, int action) {
         if (action == 2 || key == -1) return; // Ignore repeat and unknown keys (Unikey fix)
         
+        // Disable keybinds when a screen (chat, inventory, etc) is open
+        if (net.minecraft.client.MinecraftClient.getInstance().currentScreen != null) return;
+        
         for (Module m : modules) {
             if (m.getKeybind() == key) {
                 if (m.getName().equalsIgnoreCase("Freelook")) {
