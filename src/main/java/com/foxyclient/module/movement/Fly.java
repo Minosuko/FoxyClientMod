@@ -7,6 +7,7 @@ import com.foxyclient.module.Module;
 import net.minecraft.util.PlayerInput;
 import com.foxyclient.setting.ModeSetting;
 import com.foxyclient.setting.NumberSetting;
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import org.lwjgl.glfw.GLFW;
 
 /**
@@ -15,6 +16,7 @@ import org.lwjgl.glfw.GLFW;
 public class Fly extends Module {
     private final ModeSetting mode = addSetting(new ModeSetting("Mode", "Flight mode", "Vanilla", "Vanilla", "Creative", "Packet"));
     private final NumberSetting speed = addSetting(new NumberSetting("Speed", "Flight speed", 2.0, 0.1, 10.0));
+    private int ticks = 0;
 
     public Fly() {
         super("Fly", "Allows you to fly", Category.MOVEMENT, GLFW.GLFW_KEY_F);
@@ -65,6 +67,10 @@ public class Fly extends Module {
                 }
                 if (mc.options.jumpKey.isPressed()) mc.player.setVelocity(mc.player.getVelocity().add(0, spd, 0));
                 if (mc.options.sneakKey.isPressed()) mc.player.setVelocity(mc.player.getVelocity().add(0, -spd, 0));
+
+                if (++ticks % 30 == 0) {
+                    mc.player.networkHandler.sendPacket(new PlayerMoveC2SPacket.PositionAndOnGround(mc.player.getX(), mc.player.getY() - 0.04, mc.player.getZ(), false, mc.player.horizontalCollision));
+                }
             }
         }
     }

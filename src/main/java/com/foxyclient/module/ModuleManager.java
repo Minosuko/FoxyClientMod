@@ -138,7 +138,6 @@ public class ModuleManager {
         register(new RoboWalk());
         register(new FastLadderPlus());
         register(new SpeedPlus());
-        register(new FlyPlus());
         register(new SpiderPlus());
         register(new JesusPlus());
         register(new ElytraFlyPlus());

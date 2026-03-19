@@ -3,6 +3,7 @@ package com.foxyclient.module.movement;
 import com.foxyclient.event.EventHandler;
 import com.foxyclient.event.events.PacketEvent;
 import com.foxyclient.event.events.TickEvent;
+import com.foxyclient.mixin.PlayerMoveC2SPacketAccessor;
 import com.foxyclient.module.Category;
 import com.foxyclient.module.Module;
 import com.foxyclient.setting.ModeSetting;
@@ -22,7 +23,16 @@ public class NoFall extends Module {
     public void onTick(TickEvent event) {
         if (nullCheck()) return;
         if (mode.get().equals("Packet") && mc.player.fallDistance > 2.0f) {
+            // Backup reactive method for redundancy
             mc.player.networkHandler.sendPacket(new PlayerMoveC2SPacket.OnGroundOnly(true, mc.player.horizontalCollision));
+        }
+    }
+
+    @EventHandler
+    public void onPacketSend(PacketEvent.Send event) {
+        if (nullCheck()) return;
+        if (mode.get().equals("Packet") && mc.player.fallDistance > 2.0f && event.getPacket() instanceof PlayerMoveC2SPacket packet) {
+            ((PlayerMoveC2SPacketAccessor) packet).setOnGround(true);
         }
     }
 }
