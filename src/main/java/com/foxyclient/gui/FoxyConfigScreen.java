@@ -222,14 +222,13 @@ public class FoxyConfigScreen extends Screen {
                 // Background File Selection
                 addContent(ButtonWidget.builder(Text.literal("§dSelect Background..."), b -> {
                     new Thread(() -> {
-                        org.lwjgl.PointerBuffer filters = org.lwjgl.system.MemoryUtil.memAllocPointer(3);
+                        org.lwjgl.PointerBuffer filters = org.lwjgl.system.MemoryUtil.memAllocPointer(2);
                         filters.put(org.lwjgl.system.MemoryUtil.memAddress(org.lwjgl.system.MemoryUtil.memUTF8("*.png")));
                         filters.put(org.lwjgl.system.MemoryUtil.memAddress(org.lwjgl.system.MemoryUtil.memUTF8("*.jpg")));
-                        filters.put(org.lwjgl.system.MemoryUtil.memAddress(org.lwjgl.system.MemoryUtil.memUTF8("*.mp4")));
                         filters.flip();
 
                         String startPath = System.getProperty("user.home") + java.io.File.separator;
-                        String result = org.lwjgl.util.tinyfd.TinyFileDialogs.tinyfd_openFileDialog("Select Custom Background", startPath, filters, "Image/Video Files (*.png, *.jpg, *.mp4)", false);
+                        String result = org.lwjgl.util.tinyfd.TinyFileDialogs.tinyfd_openFileDialog("Select Custom Background", startPath, filters, "Image Files (*.png, *.jpg)", false);
                         org.lwjgl.system.MemoryUtil.memFree(filters);
 
                         if (result != null) {
@@ -250,7 +249,6 @@ public class FoxyConfigScreen extends Screen {
                                         java.nio.file.Files.deleteIfExists(configDir.resolve("background.png"));
                                         java.nio.file.Files.deleteIfExists(configDir.resolve("background.jpg"));
                                         java.nio.file.Files.deleteIfExists(configDir.resolve("background.jpeg"));
-                                        java.nio.file.Files.deleteIfExists(configDir.resolve("background.mp4"));
                                         
                                         java.nio.file.Path destFile;
                                         if (".jpg".equals(ext) || ".jpeg".equals(ext)) {

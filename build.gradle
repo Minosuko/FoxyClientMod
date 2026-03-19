@@ -85,23 +85,6 @@ dependencies {
     include implementation("com.googlecode.soundlibs:tritonus-share:0.3.7.4")
     include implementation("com.googlecode.soundlibs:jorbis:0.0.17.4")
     include implementation("com.googlecode.soundlibs:vorbisspi:1.0.3.3")
-
-    // JavaCV and FFmpeg Core
-    include implementation("org.bytedeco:javacpp:1.5.10")
-    include implementation("org.bytedeco:javacv:1.5.10")
-    include implementation("org.bytedeco:ffmpeg:6.1.1-1.5.10")
-
-    // JavaCPP Natives (Windows, Mac, Linux)
-    include implementation("org.bytedeco:javacpp:1.5.10:windows-x86_64")
-    include implementation("org.bytedeco:javacpp:1.5.10:linux-x86_64")
-    include implementation("org.bytedeco:javacpp:1.5.10:macosx-x86_64")
-    include implementation("org.bytedeco:javacpp:1.5.10:macosx-arm64")
-
-    // FFmpeg Natives (Windows, Mac, Linux)
-    include implementation("org.bytedeco:ffmpeg:6.1.1-1.5.10:windows-x86_64")
-    include implementation("org.bytedeco:ffmpeg:6.1.1-1.5.10:linux-x86_64")
-    include implementation("org.bytedeco:ffmpeg:6.1.1-1.5.10:macosx-x86_64")
-    include implementation("org.bytedeco:ffmpeg:6.1.1-1.5.10:macosx-arm64")
 }
 
 processResources {
