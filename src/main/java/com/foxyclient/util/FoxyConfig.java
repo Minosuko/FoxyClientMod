@@ -35,14 +35,24 @@ public class FoxyConfig {
     public final ModeSetting capeName = register(new ModeSetting("capeName", "Player cape", "Default", "None", "Custom"));
     public final BoolSetting slimModel = register(new BoolSetting("slimModel", "Slim (Alex) Model", false));
     public final com.foxyclient.setting.StringSetting customSkinPath = register(new com.foxyclient.setting.StringSetting("customSkinPath", "Custom Skin Path", ""));
+
+    // Music Settings
+    public final BoolSetting bgMusicEnabled = register(new BoolSetting("bgMusicEnabled", "Background Music", true));
+    public final ModeSetting bgMusicType = register(new ModeSetting("bgMusicType", "Music Source", "Default", "Default", "Custom"));
+    public final com.foxyclient.setting.StringSetting customMusicPath = register(new com.foxyclient.setting.StringSetting("customMusicPath", "Custom Music Path", ""));
+    public final com.foxyclient.setting.StringSetting customMusicName = register(new com.foxyclient.setting.StringSetting("customMusicName", "Custom Music Name", ""));
+
+    // Visual Settings
+    public final ModeSetting customBackgroundType = register(new ModeSetting("customBackgroundType", "Background Type", "Default", "Default", "FoxyClient", "Custom"));
+    public final com.foxyclient.setting.StringSetting customBackgroundPath = register(new com.foxyclient.setting.StringSetting("customBackgroundPath", "Custom Background Path", ""));
+    public final com.foxyclient.setting.StringSetting customBackgroundName = register(new com.foxyclient.setting.StringSetting("customBackgroundName", "Custom Background Name", ""));
+    
+    public final ModeSetting customFontType = register(new ModeSetting("customFontType", "Font Type", "Default", "Default", "FoxyClient", "Custom"));
+    public final com.foxyclient.setting.StringSetting customFontPath = register(new com.foxyclient.setting.StringSetting("customFontPath", "Custom Font Path", ""));
+    public final com.foxyclient.setting.StringSetting customFontName = register(new com.foxyclient.setting.StringSetting("customFontName", "Custom Font Name", ""));
     
     // FoxyClient Account Info (Mock)
-    public final com.foxyclient.setting.StringSetting foxyAccountName = register(new com.foxyclient.setting.StringSetting("foxyAccountName", "Foxy Account Name", ""));
-    public final com.foxyclient.setting.StringSetting foxyAccountToken = register(new com.foxyclient.setting.StringSetting("foxyAccountToken", "Foxy Account Token", ""));
-
-    public boolean isFoxyLoggedIn() {
-        return !foxyAccountName.get().isEmpty();
-    }
+    // Account fields removed to prevent them from saving into shared FoxyConfig.json files
 
     private FoxyConfig() {
         // We use foxyconfig.json to avoid collision with ModuleManager's foxyclient.json

@@ -33,6 +33,13 @@ public abstract class MixinTextFieldWidget extends ClickableWidget {
         at = @At(value = "INVOKE", target = "Lnet/minecraft/text/OrderedText;styledForwardsVisitedString(Ljava/lang/String;Lnet/minecraft/text/Style;)Lnet/minecraft/text/OrderedText;")
     )
     private OrderedText applyOutfitFont(String string, Style style) {
+        // Skip custom font for ChatScreen, AnvilScreen, and Creative Inventory input
+        net.minecraft.client.gui.screen.Screen currentScreen = net.minecraft.client.MinecraftClient.getInstance().currentScreen;
+        if (currentScreen instanceof net.minecraft.client.gui.screen.ChatScreen ||
+            currentScreen instanceof net.minecraft.client.gui.screen.ingame.AnvilScreen ||
+            currentScreen instanceof net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen) {
+            return OrderedText.styledForwardsVisitedString(string, style);
+        }
         return OrderedText.styledForwardsVisitedString(string, style.withFont(new net.minecraft.text.StyleSpriteSource.Font(OUTFIT_FONT)));
     }
 

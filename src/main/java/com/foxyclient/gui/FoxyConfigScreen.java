@@ -37,6 +37,7 @@ public class FoxyConfigScreen extends Screen {
     // Track content widgets with their index for stagger
     private final List<ClickableWidget> contentWidgets = new ArrayList<>();
     private final List<Integer> contentWidgetBaseX = new ArrayList<>();
+    private final List<ClickableWidget> sidebarWidgets = new ArrayList<>();
 
     // Macro management state
     private TextFieldWidget macroCommandField;
@@ -81,6 +82,7 @@ public class FoxyConfigScreen extends Screen {
     protected void init() {
         contentWidgets.clear();
         contentWidgetBaseX.clear();
+        sidebarWidgets.clear();
         macroCommandField = null;
 
         int sidebarWidth = 100;
@@ -88,7 +90,7 @@ public class FoxyConfigScreen extends Screen {
 
         // Tab Buttons (not animated — part of sidebar)
         for (Tab tab : Tab.values()) {
-            this.addDrawableChild(ButtonWidget.builder(Text.literal(tab.name), b -> {
+            sidebarWidgets.add(this.addDrawableChild(ButtonWidget.builder(Text.literal(tab.name), b -> {
                 if (this.currentTab != tab) {
                     this.currentTab = tab;
                     this.tabSwitchTime = System.currentTimeMillis();
@@ -96,7 +98,7 @@ public class FoxyConfigScreen extends Screen {
                     this.currentScrollPixels = 0;
                     this.clearAndInit();
                 }
-            }).dimensions(10, y, sidebarWidth - 20, 20).build());
+            }).dimensions(10, y, sidebarWidth - 20, 20).build()));
             y += 25;
         }
 
@@ -105,16 +107,242 @@ public class FoxyConfigScreen extends Screen {
         int contentY = 40;
 
         if (currentTab == Tab.GENERAL) {
+            int currentY = contentY;
             addContent(CyclingButtonWidget.onOffBuilder(FoxyConfig.INSTANCE.transitionsEnabled.get())
-                .build(contentX, contentY, 200, 20, Text.literal("Screen Transitions"), (button, value) -> {
+                .build(contentX, currentY, 200, 20, Text.literal("Screen Transitions"), (button, value) -> {
                     FoxyConfig.INSTANCE.transitionsEnabled.set((Boolean)value);
                     FoxyConfig.INSTANCE.save();
                 }));
+            currentY += 25;
+            
             addContent(CyclingButtonWidget.onOffBuilder(FoxyConfig.INSTANCE.inGameTransitions.get())
-                .build(contentX, contentY + 25, 200, 20, Text.literal("In-Game Transitions (ESC)"), (button, value) -> {
+                .build(contentX, currentY, 200, 20, Text.literal("In-Game Transitions (ESC)"), (button, value) -> {
                     FoxyConfig.INSTANCE.inGameTransitions.set((Boolean)value);
                     FoxyConfig.INSTANCE.save();
                 }));
+            currentY += 35; // Add extra padding before new section
+
+            // Music Section
+            addContent(new com.foxyclient.gui.widget.FoxyLabelWidget(textRenderer, contentX, currentY, "§bBackground Music"));
+            currentY += 15;
+            
+            addContent(CyclingButtonWidget.onOffBuilder(FoxyConfig.INSTANCE.bgMusicEnabled.get())
+                .build(contentX, currentY, 200, 20, Text.literal("Enable Music"), (button, value) -> {
+                    FoxyConfig.INSTANCE.bgMusicEnabled.set((Boolean)value);
+                    FoxyConfig.INSTANCE.save();
+                    com.foxyclient.util.FoxyMusicManager.play(); // Auto-restart or stop based on new state
+                }));
+            currentY += 25;
+            
+            String[] musicOptions = {"Default", "Custom"};
+            addContent(CyclingButtonWidget.builder((String s) -> Text.literal(s), FoxyConfig.INSTANCE.bgMusicType.get())
+                .values(musicOptions)
+                .build(contentX, currentY, 200, 20, Text.literal("Source"), (button, value) -> {
+                    FoxyConfig.INSTANCE.bgMusicType.set(value);
+                    FoxyConfig.INSTANCE.save();
+                    com.foxyclient.util.FoxyMusicManager.play();
+                }));
+            currentY += 25;
+
+            addContent(ButtonWidget.builder(Text.literal("§dSelect Custom Music..."), b -> {
+                new Thread(() -> {
+                    org.lwjgl.PointerBuffer filters = org.lwjgl.system.MemoryUtil.memAllocPointer(3);
+                    filters.put(org.lwjgl.system.MemoryUtil.memAddress(org.lwjgl.system.MemoryUtil.memUTF8("*.wav")));
+                    filters.put(org.lwjgl.system.MemoryUtil.memAddress(org.lwjgl.system.MemoryUtil.memUTF8("*.mp3")));
+                    filters.put(org.lwjgl.system.MemoryUtil.memAddress(org.lwjgl.system.MemoryUtil.memUTF8("*.ogg")));
+                    filters.flip();
+
+                    String startPath = System.getProperty("user.home") + java.io.File.separator;
+                    String result = org.lwjgl.util.tinyfd.TinyFileDialogs.tinyfd_openFileDialog("Select Music File", startPath, filters, "Audio Files (.wav, .mp3, .ogg)", false);
+                    org.lwjgl.system.MemoryUtil.memFree(filters);
+
+                    if (result != null) {
+                        java.io.File selected = new java.io.File(result);
+                        if (selected.exists() && selected.isFile()) {
+                            client.execute(() -> {
+                                try {
+                                    com.foxyclient.util.FoxyMusicManager.stop();
+                                    
+                                    String ext = "";
+                                    String name = selected.getName();
+                                    int i = name.lastIndexOf('.');
+                                    if (i > 0) ext = name.substring(i);
+                                    
+                                    java.nio.file.Path configDir = client.runDirectory.toPath().resolve("config").resolve("foxyclient");
+                                    java.nio.file.Files.createDirectories(configDir);
+                                    
+                                    java.nio.file.Files.deleteIfExists(configDir.resolve("background_music.wav"));
+                                    java.nio.file.Files.deleteIfExists(configDir.resolve("background_music.mp3"));
+                                    java.nio.file.Files.deleteIfExists(configDir.resolve("background_music.ogg"));
+                                    
+                                    java.nio.file.Path destFile = configDir.resolve("background_music" + ext);
+                                    java.nio.file.Files.copy(selected.toPath(), destFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+                                    FoxyConfig.INSTANCE.customMusicPath.set(destFile.getFileName().toString());
+                                    FoxyConfig.INSTANCE.customMusicName.set(selected.getName());
+                                    FoxyConfig.INSTANCE.bgMusicType.set("Custom");
+                                    FoxyConfig.INSTANCE.save();
+                                    FoxyClient.LOGGER.info("Configured Custom Music Path: " + destFile.toAbsolutePath().toString());
+                                    this.clearAndInit();
+                                    com.foxyclient.util.FoxyMusicManager.play(); // Play selected
+                                } catch (java.io.IOException e) {
+                                    FoxyClient.LOGGER.error("Failed to cache custom background music", e);
+                                }
+                            });
+                        }
+                    }
+                }, "MusicFileBrowser").start();
+            }).dimensions(contentX, currentY, 200, 20).build());
+            
+            // Show current name under music button if custom
+            if ("Custom".equals(FoxyConfig.INSTANCE.bgMusicType.get())) {
+                String n = FoxyConfig.INSTANCE.customMusicName.get();
+                if (!n.isEmpty()) {
+                    addContent(new com.foxyclient.gui.widget.FoxyLabelWidget(textRenderer, contentX, currentY + 25, "§7Selected: §f" + n));
+                }
+            }
+            currentY += 40; // Prevent collision with Visuals
+            
+            addContent(new com.foxyclient.gui.widget.FoxyLabelWidget(textRenderer, contentX, currentY, "§bVisuals"));
+            currentY += 15;
+
+            // Background Type Selection
+            String[] bgOptions = {"Default", "FoxyClient", "Custom"};
+            addContent(CyclingButtonWidget.builder((String s) -> Text.literal(s), FoxyConfig.INSTANCE.customBackgroundType.get())
+                .values(bgOptions)
+                .build(contentX, currentY, 200, 20, Text.literal("Background"), (button, value) -> {
+                    FoxyConfig.INSTANCE.customBackgroundType.set(value);
+                    FoxyConfig.INSTANCE.save();
+                    com.foxyclient.util.VideoHelper.initBackground();
+                    this.clearAndInit();
+                }));
+            currentY += 25;
+
+            if ("Custom".equals(FoxyConfig.INSTANCE.customBackgroundType.get())) {
+                // Background File Selection
+                addContent(ButtonWidget.builder(Text.literal("§dSelect Background..."), b -> {
+                    new Thread(() -> {
+                        org.lwjgl.PointerBuffer filters = org.lwjgl.system.MemoryUtil.memAllocPointer(3);
+                        filters.put(org.lwjgl.system.MemoryUtil.memAddress(org.lwjgl.system.MemoryUtil.memUTF8("*.png")));
+                        filters.put(org.lwjgl.system.MemoryUtil.memAddress(org.lwjgl.system.MemoryUtil.memUTF8("*.jpg")));
+                        filters.put(org.lwjgl.system.MemoryUtil.memAddress(org.lwjgl.system.MemoryUtil.memUTF8("*.mp4")));
+                        filters.flip();
+
+                        String startPath = System.getProperty("user.home") + java.io.File.separator;
+                        String result = org.lwjgl.util.tinyfd.TinyFileDialogs.tinyfd_openFileDialog("Select Custom Background", startPath, filters, "Image/Video Files (*.png, *.jpg, *.mp4)", false);
+                        org.lwjgl.system.MemoryUtil.memFree(filters);
+
+                        if (result != null) {
+                            java.io.File selected = new java.io.File(result);
+                            if (selected.exists() && selected.isFile()) {
+                                client.execute(() -> {
+                                    try {
+                                        com.foxyclient.util.VideoHelper.stopVideo();
+                                        
+                                        String ext = "";
+                                        String name = selected.getName();
+                                        int i = name.lastIndexOf('.');
+                                        if (i > 0) ext = name.substring(i);
+                                        
+                                        java.nio.file.Path configDir = client.runDirectory.toPath().resolve("config").resolve("foxyclient");
+                                        java.nio.file.Files.createDirectories(configDir);
+                                        
+                                        java.nio.file.Files.deleteIfExists(configDir.resolve("background.png"));
+                                        java.nio.file.Files.deleteIfExists(configDir.resolve("background.jpg"));
+                                        java.nio.file.Files.deleteIfExists(configDir.resolve("background.jpeg"));
+                                        java.nio.file.Files.deleteIfExists(configDir.resolve("background.mp4"));
+                                        
+                                        java.nio.file.Path destFile;
+                                        if (".jpg".equals(ext) || ".jpeg".equals(ext)) {
+                                            destFile = configDir.resolve("background.png");
+                                            java.awt.image.BufferedImage img = javax.imageio.ImageIO.read(selected);
+                                            if (img != null) {
+                                                javax.imageio.ImageIO.write(img, "png", destFile.toFile());
+                                            } else {
+                                                throw new java.io.IOException("Failed to decode JPG for PNG conversion");
+                                            }
+                                        } else {
+                                            destFile = configDir.resolve("background" + ext);
+                                            java.nio.file.Files.copy(selected.toPath(), destFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                                        }
+
+                                        FoxyConfig.INSTANCE.customBackgroundPath.set(destFile.getFileName().toString());
+                                        FoxyConfig.INSTANCE.customBackgroundName.set(selected.getName());
+                                        FoxyConfig.INSTANCE.save();
+                                        com.foxyclient.util.VideoHelper.initBackground(); // Reload background
+                                        this.clearAndInit();
+                                    } catch (java.io.IOException e) {
+                                        FoxyClient.LOGGER.error("Failed to cache custom background", e);
+                                    }
+                                });
+                            }
+                        }
+                    }, "BackgroundBrowser").start();
+                }).dimensions(contentX, currentY, 200, 20).build());
+                
+                String bgName = FoxyConfig.INSTANCE.customBackgroundName.get();
+                if (!bgName.isEmpty()) {
+                    addContent(new com.foxyclient.gui.widget.FoxyLabelWidget(textRenderer, contentX, currentY + 25, "§7Selected: §f" + bgName));
+                }
+                currentY += 40;
+            } else {
+                currentY += 10;
+            }
+
+            // Font Type Selection
+            String[] fontOptions = {"Default", "FoxyClient", "Custom"};
+            addContent(CyclingButtonWidget.builder((String s) -> Text.literal(s), FoxyConfig.INSTANCE.customFontType.get())
+                .values(fontOptions)
+                .build(contentX, currentY, 200, 20, Text.literal("Font"), (button, value) -> {
+                    FoxyConfig.INSTANCE.customFontType.set(value);
+                    FoxyConfig.INSTANCE.save();
+                    client.reloadResources();
+                    this.clearAndInit();
+                }));
+            currentY += 25;
+
+            if ("Custom".equals(FoxyConfig.INSTANCE.customFontType.get())) {
+                // Font File Selection
+                addContent(ButtonWidget.builder(Text.literal("§dSelect Custom Font..."), b -> {
+                    new Thread(() -> {
+                        org.lwjgl.PointerBuffer filters = org.lwjgl.system.MemoryUtil.memAllocPointer(1);
+                        filters.put(org.lwjgl.system.MemoryUtil.memAddress(org.lwjgl.system.MemoryUtil.memUTF8("*.ttf")));
+                        filters.flip();
+
+                        String startPath = System.getProperty("user.home") + java.io.File.separator;
+                        String result = org.lwjgl.util.tinyfd.TinyFileDialogs.tinyfd_openFileDialog("Select TrueType Font", startPath, filters, "Font Files (*.ttf)", false);
+                        org.lwjgl.system.MemoryUtil.memFree(filters);
+
+                        if (result != null) {
+                            java.io.File selected = new java.io.File(result);
+                            if (selected.exists() && selected.isFile()) {
+                                client.execute(() -> {
+                                    try {
+                                        java.nio.file.Path configDir = client.runDirectory.toPath().resolve("config").resolve("foxyclient");
+                                        java.nio.file.Files.createDirectories(configDir);
+                                        
+                                        java.nio.file.Path destFile = configDir.resolve("CustomFont.ttf");
+                                        java.nio.file.Files.copy(selected.toPath(), destFile, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+                                        FoxyConfig.INSTANCE.customFontPath.set(destFile.getFileName().toString());
+                                        FoxyConfig.INSTANCE.customFontName.set(selected.getName());
+                                        FoxyConfig.INSTANCE.save();
+                                        client.reloadResources(); // In-memory mixin will supply the font immediately
+                                        this.clearAndInit();
+                                    } catch (java.io.IOException e) {
+                                        FoxyClient.LOGGER.error("Failed to cache custom font", e);
+                                    }
+                                });
+                            }
+                        }
+                    }, "FontBrowser").start();
+                }).dimensions(contentX, currentY, 200, 20).build());
+
+                String fontName = FoxyConfig.INSTANCE.customFontName.get();
+                if (!fontName.isEmpty()) {
+                    addContent(new com.foxyclient.gui.widget.FoxyLabelWidget(textRenderer, contentX, currentY + 25, "§7Selected: §f" + fontName));
+                }
+            }
 
         } else if (currentTab == Tab.KEYBINDS) {
             // Show ALL modules with smooth scrolling
@@ -270,9 +498,9 @@ public class FoxyConfigScreen extends Screen {
             if (com.foxyclient.FoxyClient.INSTANCE.isFoxyAccount()) {
                 addContent(new com.foxyclient.gui.widget.FoxyLabelWidget(textRenderer, contentX, currentY, "§bFoxyClient Account"));
                 currentY += 15;
-                if (FoxyConfig.INSTANCE.isFoxyLoggedIn()) {
+                if (com.foxyclient.FoxyClient.INSTANCE.isFoxyAccount()) {
                     // Logged In Info
-                    String status = "§7Account: §f" + FoxyConfig.INSTANCE.foxyAccountName.get() + " §7(§aFoxyClient Account§7)";
+                    String status = "§7Account: §f" + client.getSession().getUsername() + " §7(§aFoxyClient Account§7)";
                     addContent(new com.foxyclient.gui.widget.FoxyLabelWidget(textRenderer, contentX, currentY, status));
                     
                     addContent(ButtonWidget.builder(Text.literal("Sync to Server"), b -> {
@@ -296,8 +524,8 @@ public class FoxyConfigScreen extends Screen {
         }
 
         // Back button (not animated)
-        this.addDrawableChild(ButtonWidget.builder(Text.literal("Back"), b -> this.client.setScreen(parent))
-            .dimensions(10, height - 30, sidebarWidth - 20, 20).build());
+        sidebarWidgets.add(this.addDrawableChild(ButtonWidget.builder(Text.literal("Back"), b -> this.client.setScreen(parent))
+            .dimensions(10, height - 30, sidebarWidth - 20, 20).build()));
     }
 
     @Override
@@ -373,8 +601,10 @@ public class FoxyConfigScreen extends Screen {
             context.enableScissor(100, 38, width, height - 38);
         }
 
-        // Render all widgets
-        super.render(context, mouseX, mouseY, delta);
+        // Render all content widgets manually (prevents scissor from clipping everything out recursively)
+        for (ClickableWidget widget : contentWidgets) {
+            widget.render(context, mouseX, mouseY, delta);
+        }
 
         if (currentTab == Tab.KEYBINDS) {
             context.disableScissor();
@@ -384,6 +614,11 @@ public class FoxyConfigScreen extends Screen {
         context.fill(0, 0, 100, height, 0xAA000000);
         context.fill(99, 0, 100, height, 0xFF00FCFC);
         context.drawCenteredTextWithShadow(textRenderer, "§b§lFOXY§fCONFIG", 50, 15, 0xFFFFFFFF);
+
+        // Sidebar widgets drawn at the very top (never scissored)
+        for (ClickableWidget widget : sidebarWidgets) {
+            widget.render(context, mouseX, mouseY, delta);
+        }
 
         // Custom-drawn content uses the "last" item's animation for overall alpha
         int totalItems = contentWidgets.size();

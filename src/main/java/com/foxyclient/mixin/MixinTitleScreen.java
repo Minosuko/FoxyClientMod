@@ -41,10 +41,21 @@ public class MixinTitleScreen {
      * Inject at the beginning of render to draw the custom background.
      * This is the bottom layer.
      */
-    @Inject(method = "render", at = @At("HEAD"))
+    @Inject(method = "render", at = @At("HEAD"), cancellable = true)
     private void renderBackground(DrawContext context, int mouseX, int mouseY, float deltaTicks, CallbackInfo ci) {
         TitleScreen screen = (TitleScreen) (Object) this;
-        context.drawTexture(RenderPipelines.GUI_TEXTURED, FOXY_BACKGROUND, 0, 0, 0.0F, 0.0F, screen.width, screen.height, screen.width, screen.height);
+        
+        String type = com.foxyclient.util.FoxyConfig.INSTANCE.customBackgroundType.get();
+        if ("Default".equals(type)) {
+            return; // Let vanilla render its panorama
+        }
+
+        if (com.foxyclient.util.VideoHelper.hasCustomBackground()) {
+            com.foxyclient.util.VideoHelper.updateTexture();
+            context.drawTexture(RenderPipelines.GUI_TEXTURED, com.foxyclient.util.VideoHelper.getBackgroundId(), 0, 0, 0.0F, 0.0F, screen.width, screen.height, screen.width, screen.height);
+        } else {
+            context.drawTexture(RenderPipelines.GUI_TEXTURED, FOXY_BACKGROUND, 0, 0, 0.0F, 0.0F, screen.width, screen.height, screen.width, screen.height);
+        }
     }
 
     /**
@@ -101,6 +112,11 @@ public class MixinTitleScreen {
     @Inject(method = "init", at = @At("TAIL"))
     private void onInit(CallbackInfo ci) {
         TitleScreen screen = (TitleScreen) (Object) this;
+
+        // Initialize background if not already processing
+        if (!com.foxyclient.util.VideoHelper.hasCustomBackground()) {
+            com.foxyclient.util.VideoHelper.initBackground();
+        }
 
         // Add buttons
         ((com.foxyclient.mixin.ScreenAccessor) screen).invokeAddDrawableChild(net.minecraft.client.gui.widget.ButtonWidget.builder(net.minecraft.text.Text.literal("Alt Manager"), button -> {

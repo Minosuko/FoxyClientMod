@@ -31,6 +31,9 @@ public abstract class MixinEntityRenderer<T extends Entity, S extends EntityRend
         if (freecam != null && freecam.isEnabled() && entity == MinecraftClient.getInstance().player) {
             state.invisible = false;
         }
+
+        // Render nametags (must happen when MatrixStack is set up at the entity)
+        // Wait, updateRenderState doesn't have MatrixStack. We need to inject into render() TAIL.
     }
 
     @Inject(method = "shouldRender", at = @At("HEAD"), cancellable = true)

@@ -127,12 +127,7 @@ public class FoxyClient implements ClientModInitializer {
             if (payload != null && payload.has("foxyclient") && payload.get("foxyclient").getAsBoolean()) {
                 this.isFoxyAccount = true;
                 String currentName = mc.getSession().getUsername();
-                if (!com.foxyclient.util.FoxyConfig.INSTANCE.foxyAccountName.get().equals(currentName)) {
-                    LOGGER.info("[FoxyClient] Local Account verified via JWT: {}", currentName);
-                    com.foxyclient.util.FoxyConfig.INSTANCE.foxyAccountName.set(currentName);
-                    com.foxyclient.util.FoxyConfig.INSTANCE.foxyAccountToken.set(token);
-                    com.foxyclient.util.FoxyConfig.INSTANCE.save();
-                }
+                LOGGER.info("[FoxyClient] Local Account verified via JWT: {}", currentName);
             } else {
                 this.isFoxyAccount = false;
             }

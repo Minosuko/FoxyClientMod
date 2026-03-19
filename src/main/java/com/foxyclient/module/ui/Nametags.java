@@ -16,8 +16,8 @@ import net.minecraft.util.math.Vec3d;
 import org.joml.Matrix4f;
 
 /**
- * Renders custom nametags above players with health, ping, and distance info.
- * Shows own nametag when the camera is detached (F5, Freelook, or Freecam).
+ * Renders custom nametags above players.
+ * Driven by RenderEvent to avoid vanilla player culling issues in F5/Freelook.
  */
 public class Nametags extends Module {
     private final BoolSetting showHealth   = addSetting(new BoolSetting("Health", "Show health", true));
@@ -30,18 +30,32 @@ public class Nametags extends Module {
         super("Nametags", "Better nametags with extra info", Category.UI);
     }
 
+    /**
+     * Camera is not first-person bound: F5, Freelook, or Freecam.
+     */
+    public boolean isCameraDetached() {
+        if (!mc.options.getPerspective().isFirstPerson()) return true;
+
+        Freelook freelook = Freelook.get();
+        if (freelook != null && freelook.isEnabled()) return true;
+
+        Freecam freecam = Freecam.get();
+        if (freecam != null && freecam.isEnabled()) return true;
+
+        return false;
+    }
+
     @EventHandler
     public void onRender(RenderEvent event) {
         if (mc.world == null || mc.player == null) return;
-
         MatrixStack matrices = event.getMatrices();
         if (matrices == null) return;
 
         float tickDelta = event.getTickDelta();
         Camera camera = mc.gameRenderer.getCamera();
         Vec3d camPos = camera.getCameraPos();
-
-        // Get a fresh VCP — never call vcp.draw() ourselves; let the pipeline flush it.
+        
+        // Use the entity vertex consumers, which automatically flush at the end of the frame
         VertexConsumerProvider.Immediate vcp = mc.getBufferBuilders().getEntityVertexConsumers();
 
         for (PlayerEntity player : mc.world.getPlayers()) {
@@ -54,6 +68,7 @@ public class Nametags extends Module {
                 if (player.isInvisible()) continue;
             }
 
+            // Calculate exact interpolated position of the player's feet matching ESP
             Vec3d pos = player.getLerpedPos(tickDelta);
             double x = pos.x - camPos.x;
             double y = pos.y - camPos.y;
@@ -62,7 +77,6 @@ public class Nametags extends Module {
             double dist = Math.sqrt(x * x + y * y + z * z);
             if (dist > 200) continue;
 
-            // Adaptive scale: grow with distance so text stays readable
             float scaleVal = scale.get().floatValue() * 0.025f;
             float distScale = Math.max(1.0f, (float) dist * 0.12f);
             distScale = Math.min(distScale, 3.0f);
@@ -73,13 +87,15 @@ public class Nametags extends Module {
             float tagY = (float) (y + player.getHeight() + (isSelf ? 0.5 : 0.3));
 
             matrices.push();
+            // Translate to above the player's head
             matrices.translate(x, tagY, z);
+            // Billboard: face the camera exactly like RenderUtil
             matrices.multiply(camera.getRotation());
             matrices.scale(-finalScale, -finalScale, finalScale);
 
+            Matrix4f mat = matrices.peek().getPositionMatrix();
             TextRenderer tr = mc.textRenderer;
             float halfW = tr.getWidth(text) / 2.0f;
-            Matrix4f mat = matrices.peek().getPositionMatrix();
             int bg = mc.options.getTextBackgroundColor(0.25f);
 
             // See-through layer (visible through walls, dimmed)
@@ -94,21 +110,6 @@ public class Nametags extends Module {
 
             matrices.pop();
         }
-    }
-
-    /**
-     * Camera is not first-person bound: F5, Freelook, or Freecam.
-     */
-    private boolean isCameraDetached() {
-        if (!mc.options.getPerspective().isFirstPerson()) return true;
-
-        Freelook freelook = Freelook.get();
-        if (freelook != null && freelook.isEnabled()) return true;
-
-        Freecam freecam = Freecam.get();
-        if (freecam != null && freecam.isEnabled()) return true;
-
-        return false;
     }
 
     /**
