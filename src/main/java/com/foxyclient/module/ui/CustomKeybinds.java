@@ -30,6 +30,7 @@ public class CustomKeybinds extends Module {
         super("CustomKeybinds", "Custom key action bindings (macros)", Category.UI);
         macrosFile = FabricLoader.getInstance().getConfigDir().resolve("foxyclient").resolve("macros.json");
         loadMacros();
+        setEnabled(true);
     }
 
     public void addMacro(int key, String command) {

@@ -4,6 +4,8 @@ import com.foxyclient.event.EventHandler;
 import com.foxyclient.event.events.RenderEvent;
 import com.foxyclient.module.Category;
 import com.foxyclient.module.Module;
+import com.foxyclient.module.render.Freecam;
+import com.foxyclient.module.render.Freelook;
 import com.foxyclient.setting.BoolSetting;
 import com.foxyclient.setting.NumberSetting;
 import net.minecraft.client.font.TextRenderer;
@@ -15,15 +17,14 @@ import org.joml.Matrix4f;
 
 /**
  * Renders custom nametags above players with health, ping, and distance info.
- * Uses the RenderEvent (world render phase) to iterate players ourselves,
- * billboard the text toward the camera, and render via TextRenderer.
+ * Shows own nametag when the camera is detached (F5, Freelook, or Freecam).
  */
 public class Nametags extends Module {
-    private final BoolSetting showHealth  = addSetting(new BoolSetting("Health", "Show health", true));
-    private final BoolSetting showPing    = addSetting(new BoolSetting("Ping", "Show ping", true));
+    private final BoolSetting showHealth   = addSetting(new BoolSetting("Health", "Show health", true));
+    private final BoolSetting showPing     = addSetting(new BoolSetting("Ping", "Show ping", true));
     private final BoolSetting showDistance = addSetting(new BoolSetting("Distance", "Show distance", true));
-    private final BoolSetting showSelf    = addSetting(new BoolSetting("Show Self", "Show own nametag in F5", true));
-    private final NumberSetting scale     = addSetting(new NumberSetting("Scale", "Nametag scale", 1.5, 0.5, 3.0));
+    private final BoolSetting showSelf     = addSetting(new BoolSetting("Show Self", "Show own nametag in F5 / Freelook", true));
+    private final NumberSetting scale      = addSetting(new NumberSetting("Scale", "Nametag scale", 1.5, 0.5, 3.0));
 
     public Nametags() {
         super("Nametags", "Better nametags with extra info", Category.UI);
@@ -34,108 +35,80 @@ public class Nametags extends Module {
         if (mc.world == null || mc.player == null) return;
 
         MatrixStack matrices = event.getMatrices();
-        VertexConsumerProvider.Immediate vcp = event.getVertexConsumers();
+        if (matrices == null) return;
+
         float tickDelta = event.getTickDelta();
-
-        // Render other players
-        for (PlayerEntity player : mc.world.getPlayers()) {
-            if (player != mc.player) {
-                renderTag(player, matrices, vcp, tickDelta);
-            }
-        }
-
-        // Render self separately (always attempt, renderTag handles F5 check)
-        renderTag(mc.player, matrices, vcp, tickDelta);
-
-        // Flush text buffers
-        vcp.draw();
-    }
-
-    private void renderTag(PlayerEntity player, MatrixStack matrices, VertexConsumerProvider.Immediate vcp, float tickDelta) {
-        boolean isSelf = (player == mc.player);
-
-        if (isSelf) {
-            // Only show self nametag in third-person (F5) mode
-            if (!showSelf.get()) return;
-            if (mc.options.getPerspective().isFirstPerson()) return;
-        } else {
-            if (player.isInvisible()) return;
-        }
-
-        // Camera position
         Camera camera = mc.gameRenderer.getCamera();
         Vec3d camPos = camera.getCameraPos();
 
-        // Interpolated entity position
-        Vec3d lerpedPos = player.getLerpedPos(tickDelta);
+        // Get a fresh VCP — never call vcp.draw() ourselves; let the pipeline flush it.
+        VertexConsumerProvider.Immediate vcp = mc.getBufferBuilders().getEntityVertexConsumers();
 
-        // For self: use the actual player position (getLerpedPos returns it)
-        // The camera in F5 is behind the player, so the relative offset is correct
-        double relX = lerpedPos.x - camPos.x;
-        double relY = lerpedPos.y - camPos.y;
-        double relZ = lerpedPos.z - camPos.z;
+        for (PlayerEntity player : mc.world.getPlayers()) {
+            boolean isSelf = (player == mc.player);
 
-        // Distance from camera to entity (NOT player-to-player distance)
-        double distFromCamera = Math.sqrt(relX * relX + relY * relY + relZ * relZ);
+            if (isSelf) {
+                if (!showSelf.get()) continue;
+                if (!isCameraDetached()) continue;
+            } else {
+                if (player.isInvisible()) continue;
+            }
 
-        // Distance cap (200 blocks from camera)
-        if (distFromCamera > 200) return;
+            Vec3d pos = player.getLerpedPos(tickDelta);
+            double x = pos.x - camPos.x;
+            double y = pos.y - camPos.y;
+            double z = pos.z - camPos.z;
 
-        // Build tag text
-        String text = formatNametag(player);
+            double dist = Math.sqrt(x * x + y * y + z * z);
+            if (dist > 200) continue;
 
-        // Scale: base scale + distance-adaptive scaling so tags are readable at range
-        float scaleVal = scale.get().floatValue() * 0.025f;
-        float distScale = Math.max(1.0f, (float) distFromCamera * 0.12f);
-        distScale = Math.min(distScale, 3.0f);
-        // For self in F5, the camera is only ~4 blocks away, ensure a reasonable minimum
-        if (isSelf) distScale = Math.max(distScale, 1.2f);
-        float finalScale = scaleVal * distScale;
+            // Adaptive scale: grow with distance so text stays readable
+            float scaleVal = scale.get().floatValue() * 0.025f;
+            float distScale = Math.max(1.0f, (float) dist * 0.12f);
+            distScale = Math.min(distScale, 3.0f);
+            if (isSelf) distScale = Math.max(distScale, 1.2f);
+            float finalScale = scaleVal * distScale;
 
-        matrices.push();
-        // Position above the entity's head
-        matrices.translate(relX, relY + player.getHeight() + (isSelf ? 0.5 : 0.3), relZ);
+            String text = formatNametag(player);
+            float tagY = (float) (y + player.getHeight() + (isSelf ? 0.5 : 0.3));
 
-        // Billboard: rotate to face the camera
-        matrices.multiply(camera.getRotation());
-        matrices.scale(-finalScale, -finalScale, finalScale);
+            matrices.push();
+            matrices.translate(x, tagY, z);
+            matrices.multiply(camera.getRotation());
+            matrices.scale(-finalScale, -finalScale, finalScale);
 
-        TextRenderer textRenderer = mc.textRenderer;
-        float halfWidth = textRenderer.getWidth(text) / 2.0f;
-        Matrix4f matrix = matrices.peek().getPositionMatrix();
+            TextRenderer tr = mc.textRenderer;
+            float halfW = tr.getWidth(text) / 2.0f;
+            Matrix4f mat = matrices.peek().getPositionMatrix();
+            int bg = mc.options.getTextBackgroundColor(0.25f);
 
-        // Semi-transparent black background
-        int bgColor = 0x59000000;
+            // See-through layer (visible through walls, dimmed)
+            tr.draw(text, -halfW, 0, 0x55FFFFFF, false, mat, vcp,
+                    TextRenderer.TextLayerType.SEE_THROUGH, bg,
+                    LightmapTextureManager.MAX_LIGHT_COORDINATE);
 
-        // SEE_THROUGH layer: visible through walls
-        textRenderer.draw(
-            text,
-            -halfWidth,
-            0,
-            0xFFFFFFFF,
-            false,
-            matrix,
-            vcp,
-            TextRenderer.TextLayerType.SEE_THROUGH,
-            bgColor,
-            LightmapTextureManager.MAX_LIGHT_COORDINATE
-        );
+            // Normal layer (full brightness, proper depth)
+            tr.draw(text, -halfW, 0, 0xFFFFFFFF, false, mat, vcp,
+                    TextRenderer.TextLayerType.NORMAL, bg,
+                    LightmapTextureManager.MAX_LIGHT_COORDINATE);
 
-        // NORMAL layer on top for proper depth rendering
-        textRenderer.draw(
-            text,
-            -halfWidth,
-            0,
-            0xFFFFFFFF,
-            false,
-            matrix,
-            vcp,
-            TextRenderer.TextLayerType.NORMAL,
-            0,
-            LightmapTextureManager.MAX_LIGHT_COORDINATE
-        );
+            matrices.pop();
+        }
+    }
 
-        matrices.pop();
+    /**
+     * Camera is not first-person bound: F5, Freelook, or Freecam.
+     */
+    private boolean isCameraDetached() {
+        if (!mc.options.getPerspective().isFirstPerson()) return true;
+
+        Freelook freelook = Freelook.get();
+        if (freelook != null && freelook.isEnabled()) return true;
+
+        Freecam freecam = Freecam.get();
+        if (freecam != null && freecam.isEnabled()) return true;
+
+        return false;
     }
 
     /**

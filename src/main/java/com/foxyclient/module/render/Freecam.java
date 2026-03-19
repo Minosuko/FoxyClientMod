@@ -97,10 +97,6 @@ public class Freecam extends Module {
     public void onRender(RenderEvent event) {
         if (nullCheck()) return;
 
-        // Only process the HEAD render event (matrices == null) which fires
-        // before Camera.update, so our position is ready when the camera reads it.
-        if (event.getMatrices() != null) return;
-
         long now = System.nanoTime();
         double delta = (now - lastMoveTime) / 1_000_000_000.0;
         lastMoveTime = now;

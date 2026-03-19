@@ -53,10 +53,10 @@ public abstract class MixinEntityRenderer<T extends Entity, S extends EntityRend
         }
     }
 
-    @Inject(method = "render", at = @At("TAIL"))
-    private void onRender(S state, MatrixStack matrices, OrderedRenderCommandQueue queue, CameraRenderState cameraState, CallbackInfo ci) {
+    @Inject(method = "render", at = @At("HEAD"), cancellable = true)
+    private void onRenderHead(S state, MatrixStack matrices, OrderedRenderCommandQueue queue, CameraRenderState cameraState, CallbackInfo ci) {
         if (FoxyClient.INSTANCE == null) return;
-        
+
         // Handle NoRender features
         NoRender noRender = FoxyClient.INSTANCE.getModuleManager().getModule(NoRender.class);
         if (noRender != null && noRender.isEnabled()) {
@@ -75,7 +75,7 @@ public abstract class MixinEntityRenderer<T extends Entity, S extends EntityRend
                 return;
             }
         }
-        
+
         // Handle XRay features
         com.foxyclient.module.render.XRay xray = FoxyClient.INSTANCE.getModuleManager().getModule(com.foxyclient.module.render.XRay.class);
         if (xray != null && xray.isEnabled()) {
