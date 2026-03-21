@@ -40,6 +40,15 @@ public class FriendCommand extends Command {
         if (args.length == 1) {
             return java.util.List.of("add", "remove", "list", "clear");
         }
+        if (args.length == 2 && (args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("del"))) {
+            return new java.util.ArrayList<>(FoxyClient.INSTANCE.getFriendsManager().getFriends());
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("add") && mc.getNetworkHandler() != null) {
+            return mc.getNetworkHandler().getPlayerList().stream()
+                .map(entry -> entry.getProfile().name())
+                .filter(name -> name != null && !FoxyClient.INSTANCE.getFriendsManager().isFriend(name))
+                .toList();
+        }
         return super.getSuggestions(args);
     }
 }

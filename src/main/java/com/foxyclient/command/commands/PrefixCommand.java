@@ -14,4 +14,9 @@ public class PrefixCommand extends Command {
         FoxyClient.INSTANCE.getCommandManager().setPrefix(args[0]);
         info("Prefix set to: §6" + args[0]);
     }
+    @Override
+    public java.util.List<String> getSuggestions(String[] args) {
+        if (args.length == 1) return java.util.List.of(".", "#", "!", ",", "-");
+        return super.getSuggestions(args);
+    }
 }

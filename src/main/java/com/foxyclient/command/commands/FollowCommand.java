@@ -27,4 +27,14 @@ public class FollowCommand extends Command {
         FoxyClient.INSTANCE.getPathFinder().follow(target);
         info("Following §e" + target.getName().getString());
     }
+    @Override
+    public java.util.List<String> getSuggestions(String[] args) {
+        if (args.length == 1 && mc.getNetworkHandler() != null) {
+            return mc.getNetworkHandler().getPlayerList().stream()
+                .map(entry -> entry.getProfile().name())
+                .filter(name -> name != null && !name.equals(mc.player.getGameProfile().name()))
+                .toList();
+        }
+        return super.getSuggestions(args);
+    }
 }

@@ -65,11 +65,18 @@ public class AutoEat extends Module {
             mc.options.useKey.setPressed(true);
             eating = true;
         }
+
+        // Continually enforce the keypress state to prevent window focus loss from clearing it
+        if (eating) {
+            mc.options.useKey.setPressed(true);
+        }
     }
 
     private boolean isFoxyBotActive() {
         FoxyBot foxyBot = FoxyClient.INSTANCE.getModuleManager().getModule(FoxyBot.class);
-        return foxyBot != null && foxyBot.isEnabled();
+        boolean moduleActive = foxyBot != null && foxyBot.isEnabled();
+        boolean pathingActive = FoxyClient.INSTANCE.getPathFinder() != null && FoxyClient.INSTANCE.getPathFinder().isAnyProcessActive();
+        return moduleActive || pathingActive;
     }
 
     /**

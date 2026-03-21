@@ -15,4 +15,14 @@ public class HelpCommand extends Command {
             info("§e" + cmd.getSyntax() + " §7- " + cmd.getDescription());
         }
     }
+
+    @Override
+    public java.util.List<String> getSuggestions(String[] args) {
+        if (args.length == 1) {
+            return FoxyClient.INSTANCE.getCommandManager().getCommands().stream()
+                .map(Command::getName)
+                .toList();
+        }
+        return super.getSuggestions(args);
+    }
 }

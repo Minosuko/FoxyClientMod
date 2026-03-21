@@ -83,6 +83,11 @@ public class Freecam extends Module {
     public void onTick(TickEvent event) {
         if (nullCheck()) return;
 
+        com.foxyclient.pathfinding.PathFinder pf = FoxyClient.INSTANCE.getPathFinder();
+        if (pf != null && pf.isAnyProcessActive()) {
+            return; // Let FoxyBot handle movement
+        }
+
         // Zero velocity so the player body stays perfectly still
         mc.player.setVelocity(Vec3d.ZERO);
         if (mc.player.input != null) {
@@ -129,6 +134,10 @@ public class Freecam extends Module {
     @EventHandler
     public void onPacketSend(PacketEvent.Send event) {
         if (event.getPacket() instanceof PlayerMoveC2SPacket) {
+            com.foxyclient.pathfinding.PathFinder pf = FoxyClient.INSTANCE.getPathFinder();
+            if (pf != null && pf.isAnyProcessActive()) {
+                return; // Let FoxyBot send movement packets
+            }
             event.cancel();
         }
     }

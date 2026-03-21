@@ -17,4 +17,9 @@ public class ClearCommand extends Command {
         info("Clearing " + radius + " block radius (NOT IMPLEMENTED).");
         info("Clearing " + radius + " block radius.");
     }
+    @Override
+    public java.util.List<String> getSuggestions(String[] args) {
+        if (args.length == 1) return java.util.List.of("5", "10", "20", "50");
+        return super.getSuggestions(args);
+    }
 }

@@ -12,6 +12,23 @@ public class GotoCommand extends Command {
 
     @Override
     public void execute(String[] args) {
+        if (args.length == 1) {
+            // Goto player
+            if (mc.world == null) { error("Not in a world!"); return; }
+            String targetName = args[0];
+            net.minecraft.entity.player.PlayerEntity target = null;
+            for (net.minecraft.entity.player.PlayerEntity player : mc.world.getPlayers()) {
+                if (player.getName().getString().equalsIgnoreCase(targetName)) {
+                    target = player;
+                    break;
+                }
+            }
+            if (target == null) { error("Player not found: " + targetName); return; }
+            FoxyClient.INSTANCE.getPathFinder().pathTo(target.getBlockPos());
+            info("Pathing to §e" + target.getName().getString());
+            return;
+        }
+
         if (args.length < 3) { error("Usage: " + getSyntax()); return; }
         try {
             int x = Integer.parseInt(args[0]);
@@ -23,5 +40,16 @@ public class GotoCommand extends Command {
         } catch (NumberFormatException e) {
             error("Invalid coordinates!");
         }
+    }
+
+    @Override
+    public java.util.List<String> getSuggestions(String[] args) {
+        if (args.length == 1 && mc.getNetworkHandler() != null) {
+            return mc.getNetworkHandler().getPlayerList().stream()
+                .map(entry -> entry.getProfile().name())
+                .filter(name -> name != null && !name.equals(mc.player.getGameProfile().name()))
+                .toList();
+        }
+        return super.getSuggestions(args);
     }
 }

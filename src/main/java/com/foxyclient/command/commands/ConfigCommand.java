@@ -23,4 +23,12 @@ public class ConfigCommand extends Command {
             default -> error("Usage: " + getSyntax());
         }
     }
+
+    @Override
+    public java.util.List<String> getSuggestions(String[] args) {
+        if (args.length == 1) {
+            return java.util.List.of("save", "load");
+        }
+        return super.getSuggestions(args);
+    }
 }

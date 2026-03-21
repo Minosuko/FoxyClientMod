@@ -17,19 +17,22 @@ public class MixinInputTick {
     private void onTickReturn(CallbackInfo ci) {
         if (FoxyClient.INSTANCE == null) return;
 
-        // Freecam: zero all movement so the player body stays perfectly still
-        // while the camera keys (WASD/Space/Shift) are used for flying
+        var pf = FoxyClient.INSTANCE.getPathFinder();
+        boolean pathing = pf != null && pf.isActive() && !pf.isPaused();
+
         Freecam freecam = Freecam.get();
         if (freecam != null && freecam.isEnabled()) {
             Input input = (Input) (Object) this;
             input.playerInput = PlayerInput.DEFAULT;
             ((InputAccessor) input).setMovementVector(Vec2f.ZERO);
+            
+            if (pathing) {
+                pf.tick();
+            }
             return;
         }
 
-        // Pathfinder movement override
-        var pf = FoxyClient.INSTANCE.getPathFinder();
-        if (pf != null && pf.isActive() && !pf.isPaused()) {
+        if (pathing) {
             pf.tick();
         }
     }

@@ -44,6 +44,7 @@ public class CommandManager {
         
         // UI commands
         register(new MacroCommand());
+        register(new SayCommand());
     }
 
     private void register(Command command) {

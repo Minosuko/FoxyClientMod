@@ -34,9 +34,29 @@ public class FoxyBot extends Module {
 
     private boolean dispatched = false;
     private int idleTicks = 0;
+    private boolean externalActivation = false;
 
     public FoxyBot() {
         super("FoxyBot", "Baritone-powered automation (Mine, GoTo, Follow, Explore, Farm)", Category.WORLD);
+        FoxyClient.INSTANCE.getEventBus().register(new GlobalListener());
+    }
+
+    private class GlobalListener {
+        @EventHandler
+        public void onGlobalTick(TickEvent event) {
+            PathFinder pf = pathFinder();
+            if (pf == null || mc.player == null || mc.world == null) return;
+
+            boolean active = pf.isAnyProcessActive();
+            if (active && !isEnabled()) {
+                externalActivation = true;
+                setEnabled(true);
+                externalActivation = false;
+            } else if (!active && isEnabled() && !dispatched) {
+                // If it was externally activated, turn off when the command finishes
+                setEnabled(false);
+            }
+        }
     }
 
     private PathFinder pathFinder() {
@@ -46,9 +66,11 @@ public class FoxyBot extends Module {
     @Override
     public void onEnable() {
         if (nullCheck()) return;
-        dispatched = false;
-        idleTicks = 0;
-        dispatch();
+        if (!externalActivation) {
+            dispatched = false;
+            idleTicks = 0;
+            dispatch();
+        }
     }
 
     @Override
@@ -70,6 +92,9 @@ public class FoxyBot extends Module {
             if (autoResume.get() && dispatched && idleTicks > 40) {
                 dispatch();
                 idleTicks = 0;
+            } else if (!autoResume.get() && dispatched && idleTicks > 40) {
+                // Turns off automatically if it finished its task and autoresume is off
+                setEnabled(false);
             }
         } else {
             idleTicks = 0;

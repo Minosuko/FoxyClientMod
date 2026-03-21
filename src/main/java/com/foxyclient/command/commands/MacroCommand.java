@@ -85,11 +85,10 @@ public class MacroCommand extends Command {
     @Override
     public List<String> getSuggestions(String[] args) {
         if (args.length == 1) {
-            List<String> suggestions = new ArrayList<>();
-            suggestions.add("add");
-            suggestions.add("remove");
-            suggestions.add("list");
-            return suggestions;
+            return List.of("add", "remove", "list");
+        }
+        if (args.length == 2 && (args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("add"))) {
+            return List.of("LSHIFT", "RSHIFT", "LCTRL", "RCTRL", "LALT", "RALT", "TAB", "CAPSLOCK", "SPACE", "ENTER", "BACKSPACE", "UP", "DOWN", "LEFT", "RIGHT");
         }
         return super.getSuggestions(args);
     }

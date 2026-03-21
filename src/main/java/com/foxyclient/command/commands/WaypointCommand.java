@@ -58,4 +58,17 @@ public class WaypointCommand extends Command {
             default -> error("Usage: " + getSyntax());
         }
     }
+
+    @Override
+    public java.util.List<String> getSuggestions(String[] args) {
+        if (args.length == 1) {
+            return java.util.List.of("add", "remove", "list", "goto");
+        }
+        if (args.length == 2 && (args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("goto") || args[0].equalsIgnoreCase("del"))) {
+            return FoxyClient.INSTANCE.getWaypointManager().getAll().stream()
+                .map(com.foxyclient.util.WaypointManager.Waypoint::name)
+                .toList();
+        }
+        return super.getSuggestions(args);
+    }
 }
