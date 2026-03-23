@@ -152,8 +152,8 @@ public class SoundESP extends Module {
             float x2 = (float)(cx + Math.cos(angle2) * radius);
             float z2 = (float)(cz + Math.sin(angle2) * radius);
 
-            buffer.vertex(matrix, x1, (float) cy, z1).color(r, g, b, a);
-            buffer.vertex(matrix, x2, (float) cy, z2).color(r, g, b, a);
+            buffer.vertex(matrix, x1, (float) cy, z1).color(r, g, b, a).normal(0, 1, 0).lineWidth(2.0f);
+            buffer.vertex(matrix, x2, (float) cy, z2).color(r, g, b, a).normal(0, 1, 0).lineWidth(2.0f);
         }
     }
 

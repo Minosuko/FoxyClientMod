@@ -108,16 +108,77 @@ public class RenderUtil {
     public static void drawBlockTracer(MatrixStack matrices, BlockPos pos, Color color, VertexConsumerProvider.Immediate vcp) {
         Vec3d camPos = mc.gameRenderer.getCamera().getCameraPos();
         Vec3d center = Vec3d.ofCenter(pos);
-        matrices.push();
-        FoxyRenderer.drawTracer(matrices, vcp, 0, 0, 0, (float)(center.x - camPos.x), (float)(center.y - camPos.y), (float)(center.z - camPos.z), color);
-        matrices.pop();
+
+        Matrix4f matrix = matrices.peek().getPositionMatrix();
+        VertexConsumer buffer = vcp.getBuffer(RenderLayers.getBypassTranslucent());
+
+        float r = color.getRed() / 255f;
+        float g = color.getGreen() / 255f;
+        float b = color.getBlue() / 255f;
+        float a = color.getAlpha() / 255f;
+
+        float tx = (float)(center.x - camPos.x);
+        float ty = (float)(center.y - camPos.y);
+        float tz = (float)(center.z - camPos.z);
+
+        drawLineQuad(buffer, matrix, 0, 0, 0, tx, ty, tz, 0.01f, r, g, b, a);
     }
 
     public static void drawTracerLine(MatrixStack matrices, Entity entity, Color color, float tickDelta, VertexConsumerProvider.Immediate vcp) {
         Vec3d camPos = mc.gameRenderer.getCamera().getCameraPos();
         Vec3d pos = entity.getLerpedPos(tickDelta);
-        matrices.push();
-        FoxyRenderer.drawTracer(matrices, vcp, 0, 0, 0, (float)(pos.x - camPos.x), (float)(pos.y - camPos.y), (float)(pos.z - camPos.z), color);
-        matrices.pop();
+
+        Matrix4f matrix = matrices.peek().getPositionMatrix();
+        VertexConsumer buffer = vcp.getBuffer(RenderLayers.getBypassTranslucent());
+
+        float r = color.getRed() / 255f;
+        float g = color.getGreen() / 255f;
+        float b = color.getBlue() / 255f;
+        float a = color.getAlpha() / 255f;
+
+        float tx = (float)(pos.x - camPos.x);
+        float ty = (float)(pos.y - camPos.y);
+        float tz = (float)(pos.z - camPos.z);
+
+        drawLineQuad(buffer, matrix, 0, 0, 0, tx, ty, tz, 0.01f, r, g, b, a);
+    }
+
+    /**
+     * Draw a line as a thin camera-facing quad using POSITION_COLOR (QUADS).
+     */
+    private static void drawLineQuad(VertexConsumer buffer, Matrix4f matrix,
+                                      float x1, float y1, float z1,
+                                      float x2, float y2, float z2,
+                                      float halfWidth,
+                                      float r, float g, float b, float a) {
+        float dx = x2 - x1, dy = y2 - y1, dz = z2 - z1;
+        float len = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (len < 0.001f) return;
+
+        org.joml.Vector3f lineDir = new org.joml.Vector3f(dx / len, dy / len, dz / len);
+
+        // View direction from camera to midpoint
+        float mx = (x1 + x2) * 0.5f, my = (y1 + y2) * 0.5f, mz = (z1 + z2) * 0.5f;
+        float mLen = (float) Math.sqrt(mx * mx + my * my + mz * mz);
+        org.joml.Vector3f viewDir = mLen < 0.001f
+                ? new org.joml.Vector3f(x2, y2, z2).normalize()
+                : new org.joml.Vector3f(mx / mLen, my / mLen, mz / mLen);
+
+        // Perpendicular = cross(lineDir, viewDir)
+        org.joml.Vector3f perp = new org.joml.Vector3f();
+        lineDir.cross(viewDir, perp);
+        float perpLen = perp.length();
+        if (perpLen < 0.0001f) {
+            org.joml.Vector3f up = Math.abs(lineDir.y) > 0.99f ? new org.joml.Vector3f(1, 0, 0) : new org.joml.Vector3f(0, 1, 0);
+            lineDir.cross(up, perp);
+            perpLen = perp.length();
+            if (perpLen < 0.0001f) return;
+        }
+        perp.mul(halfWidth / perpLen);
+
+        buffer.vertex(matrix, x1 - perp.x, y1 - perp.y, z1 - perp.z).color(r, g, b, a);
+        buffer.vertex(matrix, x1 + perp.x, y1 + perp.y, z1 + perp.z).color(r, g, b, a);
+        buffer.vertex(matrix, x2 + perp.x, y2 + perp.y, z2 + perp.z).color(r, g, b, a);
+        buffer.vertex(matrix, x2 - perp.x, y2 - perp.y, z2 - perp.z).color(r, g, b, a);
     }
 }

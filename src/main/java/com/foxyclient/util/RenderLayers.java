@@ -49,12 +49,13 @@ public class RenderLayers {
         "foxy_bypass_lines",
         RenderSetup.builder(BYPASS_LINES_PIPELINE)
             .layeringTransform(net.minecraft.client.render.LayeringTransform.VIEW_OFFSET_Z_LAYERING)
+            .outputTarget(net.minecraft.client.render.OutputTarget.ITEM_ENTITY_TARGET)
             .build()
     );
 
     public static RenderLayer getBypassTranslucent() { return BYPASS_TRANSLUCENT; }
-    public static RenderLayer getBypassLines() { return net.minecraft.client.render.RenderLayers.LINES; }
+    public static RenderLayer getBypassLines() { return BYPASS_LINES; }
     
     // For SoundESP compatibility
-    public static RenderLayer lines() { return net.minecraft.client.render.RenderLayers.LINES; }
+    public static RenderLayer lines() { return BYPASS_LINES; }
 }

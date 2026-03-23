@@ -167,6 +167,11 @@ public class BowIndicator extends Module {
         Color lineColor = new Color(0, 255, 255, 200);
         Color boxColor = new Color(255, 50, 50, 200);
 
+        if (hit instanceof EntityHitResult ehr && ehr.getEntity() instanceof net.minecraft.entity.LivingEntity && !(ehr.getEntity() instanceof net.minecraft.entity.player.PlayerEntity)) {
+            lineColor = new Color(0, 255, 0, 200);
+            boxColor = new Color(0, 255, 0, 200);
+        }
+
         // Draw path line
         VertexConsumer buffer = vcp.getBuffer(RenderLayers.getBypassLines());
         Matrix4f matrix = matrices.peek().getPositionMatrix();
