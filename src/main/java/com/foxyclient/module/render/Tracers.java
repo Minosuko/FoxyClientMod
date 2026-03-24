@@ -110,8 +110,8 @@ public class Tracers extends Module {
         float sy = (float) (crosshairPos.y - camPos.y);
         float sz = (float) (crosshairPos.z - camPos.z);
 
-        // Use BYPASS_TRANSLUCENT (QUADS) — same layer that works for ESP boxes
-        Matrix4f matrix = matrices.peek().getPositionMatrix();
+        // Use a clean identity matrix to avoid camera bob/shake waving
+        Matrix4f matrix = new Matrix4f();
         VertexConsumer buffer = vcp.getBuffer(RenderLayers.getBypassTranslucent());
 
         float halfW = lineWidth.get().floatValue() / 2f;

@@ -57,6 +57,11 @@ public abstract class Module {
         if (FoxyClient.INSTANCE != null && FoxyClient.INSTANCE.getModuleManager() != null && !this.getName().equals("CustomKeybinds") && !this.getName().equals("ClickGUI")) {
             FoxyClient.INSTANCE.getModuleManager().setLastToggledModule(this);
         }
+        
+        // Auto-save config
+        if (FoxyClient.INSTANCE != null && FoxyClient.INSTANCE.getModuleManager() != null && !FoxyClient.INSTANCE.getModuleManager().isLoading()) {
+            FoxyClient.INSTANCE.getModuleManager().saveConfig();
+        }
     }
 
     // Settings
@@ -94,6 +99,12 @@ public abstract class Module {
     public boolean isVisible() { return visible; }
     public void setVisible(boolean visible) { this.visible = visible; }
     public int getKeybind() { return keybind; }
-    public void setKeybind(int keybind) { this.keybind = keybind; }
+    public void setKeybind(int keybind) {
+        this.keybind = keybind;
+        // Auto-save config
+        if (FoxyClient.INSTANCE != null && FoxyClient.INSTANCE.getModuleManager() != null && !FoxyClient.INSTANCE.getModuleManager().isLoading()) {
+            FoxyClient.INSTANCE.getModuleManager().saveConfig();
+        }
+    }
     public List<Setting<?>> getSettings() { return settings; }
 }

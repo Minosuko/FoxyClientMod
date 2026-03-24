@@ -106,10 +106,31 @@ public class RenderUtil {
     }
 
     public static void drawBlockTracer(MatrixStack matrices, BlockPos pos, Color color, VertexConsumerProvider.Immediate vcp) {
-        Vec3d camPos = mc.gameRenderer.getCamera().getCameraPos();
+        Camera camera = mc.gameRenderer.getCamera();
+        Vec3d camPos = camera.getCameraPos();
+
+        // Compute un-bobbed crosshair position from camera yaw/pitch
+        float tickDelta = mc.getRenderTickCounter().getTickProgress(true);
+        Vec3d playerPos = mc.player.getLerpedPos(tickDelta);
+        Vec3d eyePos = playerPos.add(0, mc.player.getStandingEyeHeight(), 0);
+        float yaw = camera.getYaw();
+        float pitch = camera.getPitch();
+        double yawRad = Math.toRadians(-yaw);
+        double pitchRad = Math.toRadians(-pitch);
+        double lookX = Math.sin(yawRad) * Math.cos(pitchRad);
+        double lookY = Math.sin(pitchRad);
+        double lookZ = Math.cos(yawRad) * Math.cos(pitchRad);
+        Vec3d crosshairPos = eyePos.add(lookX, lookY, lookZ);
+
+        // Start from crosshair in camera-relative coords
+        float sx = (float)(crosshairPos.x - camPos.x);
+        float sy = (float)(crosshairPos.y - camPos.y);
+        float sz = (float)(crosshairPos.z - camPos.z);
+
         Vec3d center = Vec3d.ofCenter(pos);
 
-        Matrix4f matrix = matrices.peek().getPositionMatrix();
+        // Use a clean identity matrix to avoid camera bob/shake waving
+        Matrix4f matrix = new Matrix4f();
         VertexConsumer buffer = vcp.getBuffer(RenderLayers.getBypassTranslucent());
 
         float r = color.getRed() / 255f;
@@ -121,14 +142,14 @@ public class RenderUtil {
         float ty = (float)(center.y - camPos.y);
         float tz = (float)(center.z - camPos.z);
 
-        drawLineQuad(buffer, matrix, 0, 0, 0, tx, ty, tz, 0.01f, r, g, b, a);
+        drawLineQuad(buffer, matrix, sx, sy, sz, tx, ty, tz, 0.01f, r, g, b, a);
     }
 
     public static void drawTracerLine(MatrixStack matrices, Entity entity, Color color, float tickDelta, VertexConsumerProvider.Immediate vcp) {
         Vec3d camPos = mc.gameRenderer.getCamera().getCameraPos();
         Vec3d pos = entity.getLerpedPos(tickDelta);
 
-        Matrix4f matrix = matrices.peek().getPositionMatrix();
+        Matrix4f matrix = new Matrix4f();
         VertexConsumer buffer = vcp.getBuffer(RenderLayers.getBypassTranslucent());
 
         float r = color.getRed() / 255f;

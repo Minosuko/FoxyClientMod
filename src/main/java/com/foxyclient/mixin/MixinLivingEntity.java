@@ -115,4 +115,15 @@ public abstract class MixinLivingEntity {
         }
     }
 
+    @Inject(method = "swingHand", at = @At("HEAD"), cancellable = true)
+    private void onSwingHand(net.minecraft.util.Hand hand, CallbackInfo ci) {
+        if (FoxyClient.INSTANCE == null) return;
+        if ((Object) this == MinecraftClient.getInstance().player) {
+            com.foxyclient.module.misc.CombatAnimation combatAnim = com.foxyclient.module.misc.CombatAnimation.get();
+            if (combatAnim != null && combatAnim.shouldNoSwing()) {
+                ci.cancel();
+            }
+        }
+    }
+
 }

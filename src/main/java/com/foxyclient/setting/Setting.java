@@ -1,5 +1,6 @@
 package com.foxyclient.setting;
 
+import com.foxyclient.FoxyClient;
 import com.google.gson.JsonElement;
 import java.util.function.Consumer;
 
@@ -27,6 +28,10 @@ public abstract class Setting<T> {
     public void set(T value) { 
         this.value = value;
         if (onChanged != null) onChanged.accept(value);
+        // Auto-save config
+        if (FoxyClient.INSTANCE != null && FoxyClient.INSTANCE.getModuleManager() != null && !FoxyClient.INSTANCE.getModuleManager().isLoading()) {
+            FoxyClient.INSTANCE.getModuleManager().saveConfig();
+        }
     }
     
     public void setOnChanged(Consumer<T> onChanged) {

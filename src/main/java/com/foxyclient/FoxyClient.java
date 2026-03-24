@@ -28,7 +28,7 @@ import java.util.List;
  */
 public class FoxyClient implements ClientModInitializer {
     public static final String NAME = "FoxyClient";
-    public static final String VERSION = "1.3.0";
+    public static final String VERSION = "1.3.1";
     public static final Logger LOGGER = LoggerFactory.getLogger(NAME);
 
     public static FoxyClient INSTANCE;
@@ -264,6 +264,17 @@ public class FoxyClient implements ClientModInitializer {
             int tpsWidth = textRenderer.getWidth(tpsStr.replaceAll("§.", ""));
             context.fill(screenWidth - tpsWidth - 6, bottomRightY - 2, screenWidth - 2, bottomRightY + 10, 0x88000000);
             context.drawTextWithShadow(textRenderer, tpsStr, screenWidth - tpsWidth - 4, bottomRightY, 0xFFFFFFFF);
+            bottomRightY -= 12;
+        }
+
+        // CPS
+        if (hud.cps.get()) {
+            int leftCps = com.foxyclient.util.CPSTracker.INSTANCE.getLeftCPS();
+            int rightCps = com.foxyclient.util.CPSTracker.INSTANCE.getRightCPS();
+            String cpsStr = "§7CPS: §f" + leftCps + " §7| §f" + rightCps;
+            int cpsWidth = textRenderer.getWidth(cpsStr.replaceAll("§.", ""));
+            context.fill(screenWidth - cpsWidth - 6, bottomRightY - 2, screenWidth - 2, bottomRightY + 10, 0x88000000);
+            context.drawTextWithShadow(textRenderer, cpsStr, screenWidth - cpsWidth - 4, bottomRightY, 0xFFFFFFFF);
             bottomRightY -= 12;
         }
 

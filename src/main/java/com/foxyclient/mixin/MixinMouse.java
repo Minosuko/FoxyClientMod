@@ -2,6 +2,7 @@ package com.foxyclient.mixin;
 
 import com.foxyclient.FoxyClient;
 import com.foxyclient.event.events.MouseScrollEvent;
+import com.foxyclient.util.CPSTracker;
 import net.minecraft.client.Mouse;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -20,5 +21,12 @@ public class MixinMouse {
         if (event.isCancelled()) {
             ci.cancel();
         }
+    }
+
+    @Inject(method = "onMouseButton", at = @At("HEAD"))
+    private void onMouseButton(CallbackInfo ci) {
+        long window = net.minecraft.client.MinecraftClient.getInstance().getWindow().getHandle();
+        if (org.lwjgl.glfw.GLFW.glfwGetMouseButton(window, 0) == 1) CPSTracker.INSTANCE.recordLeft();
+        if (org.lwjgl.glfw.GLFW.glfwGetMouseButton(window, 1) == 1) CPSTracker.INSTANCE.recordRight();
     }
 }

@@ -66,6 +66,7 @@ public class ModuleManager {
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
     private final Path configPath;
     private Module lastToggledModule;
+    private boolean loading = true; // Start true — only becomes false after loadConfig() completes
 
     public ModuleManager() {
         configPath = FabricLoader.getInstance().getConfigDir().resolve("foxyclient");
@@ -73,6 +74,7 @@ public class ModuleManager {
     }
 
     public void init() {
+        loading = true; // Prevent auto-saves during registration & config load
         register(new KillAura());
         register(new CrystalAura());
         register(new AutoTotem());
@@ -265,6 +267,7 @@ public class ModuleManager {
         register(new AutoAccept());
         register(new PlayerAlarms());
         register(new Proxy());
+        register(new CombatAnimation());
 
         // ====== Exploit (4) ======
         register(new PacketFly());
@@ -332,6 +335,7 @@ public class ModuleManager {
 
     public Module getLastToggledModule() { return lastToggledModule; }
     public void setLastToggledModule(Module module) { this.lastToggledModule = module; }
+    public boolean isLoading() { return loading; }
 
     public Module getModule(String name) {
         for (Module m : modules) {
@@ -406,6 +410,8 @@ public class ModuleManager {
 
     public void loadConfig() {
         // Try loading consolidated config first
+        loading = true;
+        try {
         Path consolidatedFile = configPath.resolve("foxyclient.json");
         if (Files.exists(consolidatedFile)) {
             try (Reader reader = Files.newBufferedReader(consolidatedFile)) {
@@ -446,6 +452,9 @@ public class ModuleManager {
 
         // Migrate: save as consolidated format
         saveConfig();
+        } finally {
+            loading = false;
+        }
     }
 
     private void loadModuleFromJson(Module module, JsonObject obj) {
