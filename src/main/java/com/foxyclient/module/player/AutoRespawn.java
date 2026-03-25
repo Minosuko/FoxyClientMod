@@ -1,5 +1,7 @@
 package com.foxyclient.module.player;
 
+import com.foxyclient.event.EventHandler;
+import com.foxyclient.event.events.TickEvent;
 import com.foxyclient.module.Category;
 import com.foxyclient.module.Module;
 
@@ -11,8 +13,15 @@ public class AutoRespawn extends Module {
         super("AutoRespawn", "Auto respawn on death", Category.PLAYER);
     }
 
-    // Applied via MixinDeathScreen or screen check
-    public boolean shouldAutoRespawn() {
-        return isEnabled();
+    @EventHandler
+    public void onTick(TickEvent event) {
+        if (mc.player == null) return;
+        
+        if (mc.currentScreen instanceof net.minecraft.client.gui.screen.DeathScreen) {
+            mc.player.requestRespawn();
+            mc.setScreen(null);
+        } else if (mc.player.isDead()) {
+            mc.player.requestRespawn();
+        }
     }
 }

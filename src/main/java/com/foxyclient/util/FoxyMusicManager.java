@@ -26,9 +26,21 @@ public class FoxyMusicManager {
         if (mc.getSoundManager() == null) return;
 
         // Stop whatever is playing first if settings changed
-        if (!FoxyConfig.INSTANCE.bgMusicEnabled.get()) {
-            stop();
-            return;
+        boolean inGame = mc.world != null;
+        boolean menuMusic = FoxyConfig.INSTANCE.menuMusicEnabled.get();
+        com.foxyclient.module.render.MusicPlayer player = com.foxyclient.FoxyClient.INSTANCE.getModuleManager().getModule(com.foxyclient.module.render.MusicPlayer.class);
+        boolean playerActive = player != null && player.isEnabled();
+
+        if (inGame) {
+            if (!playerActive) {
+                stop();
+                return;
+            }
+        } else {
+            if (!menuMusic) {
+                stop();
+                return;
+            }
         }
 
         // Always stop vanilla default music tracker so it doesn't overlap
@@ -101,10 +113,17 @@ public class FoxyMusicManager {
 
     public static void tick() {
         MinecraftClient mc = MinecraftClient.getInstance();
-        if (mc.world == null && mc.currentScreen != null) {
-            play(); // Ensure it's playing in menus
-        } else if (mc.world != null) {
-            stop(); // Ensure it stops in-game
+        boolean inGame = mc.world != null;
+        boolean menuMusic = FoxyConfig.INSTANCE.menuMusicEnabled.get();
+        com.foxyclient.module.render.MusicPlayer player = com.foxyclient.FoxyClient.INSTANCE.getModuleManager().getModule(com.foxyclient.module.render.MusicPlayer.class);
+        boolean playerActive = player != null && player.isEnabled();
+
+        if (!inGame && mc.currentScreen != null) {
+            if (menuMusic) play();
+            else stop();
+        } else if (inGame) {
+            if (playerActive) play();
+            else stop();
         }
 
         // Apply volume adjustments to custom audio dynamically based on master & music sliders
@@ -171,5 +190,16 @@ public class FoxyMusicManager {
         }, "FoxyCustomAudioStream");
         customAudioThread.setDaemon(true);
         customAudioThread.start();
+    }
+
+    public static String getCurrentTrackName() {
+        String mode = FoxyConfig.INSTANCE.bgMusicType.get();
+        if ("Default".equals(mode)) return "Foxy Theme";
+        if ("Custom".equals(mode)) return FoxyConfig.INSTANCE.customMusicName.get();
+        return "None";
+    }
+
+    public static boolean isPlaying() {
+        return (vanillaMusicInstance != null && MinecraftClient.getInstance().getSoundManager().isPlaying(vanillaMusicInstance)) || customAudioRunning;
     }
 }

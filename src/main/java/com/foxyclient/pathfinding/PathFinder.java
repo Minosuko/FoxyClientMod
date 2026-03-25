@@ -104,7 +104,9 @@ public class PathFinder {
 
     /** Check if any process is running. */
     public boolean isAnyProcessActive() {
-        return getFoxyBot().getPathingBehavior().isPathing()
+        return getFoxyBot().getPathingControlManager().mostRecentInControl().isPresent()
+            || getFoxyBot().getPathingBehavior().isPathing()
+            || getFoxyBot().getCustomGoalProcess().isActive()
             || getFoxyBot().getMineProcess().isActive()
             || getFoxyBot().getFollowProcess().isActive()
             || getFoxyBot().getExploreProcess().isActive()

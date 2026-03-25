@@ -7,6 +7,7 @@ import com.foxyclient.module.Category;
 import com.foxyclient.module.Module;
 import com.foxyclient.module.render.OreFinder;
 import com.foxyclient.pathfinding.PathFinder;
+import com.foxyclient.setting.BlockListSetting;
 import com.foxyclient.setting.BoolSetting;
 import com.foxyclient.setting.ModeSetting;
 import com.foxyclient.setting.NumberSetting;
@@ -27,6 +28,7 @@ public class FoxyBot extends Module {
         "Mine", "Mine", "GoTo", "Follow", "Explore", "Farm"));
 
     private final BoolSetting autoResume = addSetting(new BoolSetting("AutoResume", "Auto-resume when idle", true));
+    private final BlockListSetting mineBlocks = addSetting(new BlockListSetting("MineBlocks", "Blocks to mine in addition to ores"));
 
     private final NumberSetting gotoX = addSetting(new NumberSetting("GoToX", "Target X", 0, -30000000, 30000000));
     private final NumberSetting gotoY = addSetting(new NumberSetting("GoToY", "Target Y (-1=any)", -1, -1, 320));
@@ -113,13 +115,17 @@ public class FoxyBot extends Module {
     }
 
     private void dispatchMine() {
+        List<Block> targets = new java.util.ArrayList<>();
+        
         OreFinder oreFinder = FoxyClient.INSTANCE.getModuleManager().getModule(OreFinder.class);
-        if (oreFinder == null) { error("OreFinder module not found!"); return; }
+        if (oreFinder != null) {
+            targets.addAll(oreFinder.getEnabledOreBlocks());
+        }
+        targets.addAll(mineBlocks.getBlocks());
 
-        List<Block> oreBlocks = oreFinder.getEnabledOreBlocks();
-        if (oreBlocks.isEmpty()) { error("No ore types enabled in OreFinder!"); return; }
+        if (targets.isEmpty()) { error("No blocks to mine! Add blocks in MineBlocks setting or enable ores in OreFinder."); return; }
 
-        String[] blockNames = oreBlocks.stream()
+        String[] blockNames = targets.stream()
             .map(block -> Registries.BLOCK.getId(block).toString())
             .distinct()
             .toArray(String[]::new);

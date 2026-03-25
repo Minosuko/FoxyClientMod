@@ -167,7 +167,7 @@ public class RenderUtil {
     /**
      * Draw a line as a thin camera-facing quad using POSITION_COLOR (QUADS).
      */
-    private static void drawLineQuad(VertexConsumer buffer, Matrix4f matrix,
+    public static void drawLineQuad(VertexConsumer buffer, Matrix4f matrix,
                                       float x1, float y1, float z1,
                                       float x2, float y2, float z2,
                                       float halfWidth,
@@ -201,5 +201,31 @@ public class RenderUtil {
         buffer.vertex(matrix, x1 + perp.x, y1 + perp.y, z1 + perp.z).color(r, g, b, a);
         buffer.vertex(matrix, x2 + perp.x, y2 + perp.y, z2 + perp.z).color(r, g, b, a);
         buffer.vertex(matrix, x2 - perp.x, y2 - perp.y, z2 - perp.z).color(r, g, b, a);
+    }
+
+    /**
+     * Draw a line using native LINES format (POSITION_COLOR_NORMAL_LINE_WIDTH).
+     */
+    public static void drawLine(VertexConsumer buffer, Matrix4f matrix,
+                                float x1, float y1, float z1,
+                                float x2, float y2, float z2,
+                                float r, float g, float b, float a,
+                                float width) {
+        float dx = x2 - x1;
+        float dy = y2 - y1;
+        float dz = z2 - z1;
+        float len = (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (len > 0) {
+            dx /= len;
+            dy /= len;
+            dz /= len;
+        } else {
+            dx = 1;
+            dy = 0;
+            dz = 0;
+        }
+
+        buffer.vertex(matrix, x1, y1, z1).color(r, g, b, a).normal(dx, dy, dz).lineWidth(width);
+        buffer.vertex(matrix, x2, y2, z2).color(r, g, b, a).normal(dx, dy, dz).lineWidth(width);
     }
 }

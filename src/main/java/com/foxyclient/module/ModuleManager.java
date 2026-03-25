@@ -138,12 +138,8 @@ public class ModuleManager {
         register(new Glide());
         register(new Jetpack());
         register(new RoboWalk());
-        register(new FastLadderPlus());
-        register(new SpeedPlus());
-        register(new SpiderPlus());
-        register(new JesusPlus());
-        register(new ElytraFlyPlus());
-        register(new NoSlowPlus());
+        register(new FastLadder());
+        register(new Spider());
         register(new BoatNoclip());
         register(new TPFly());
         register(new AirJump());
@@ -157,7 +153,6 @@ public class ModuleManager {
         register(new StorageESP());
         register(new BowIndicator());
         register(new Freelook());
-        register(new WallHack());
         register(new NoRender());
         register(new Hitboxes());
         register(new BlockESP());
@@ -178,14 +173,20 @@ public class ModuleManager {
         register(new KillEffect());
         register(new EyeFinder());
         register(new CustomBlocks());
+        register(new WaypointBeacon());
+        register(new EntityOwner());
+        register(new ItemPhysics());
         register(new MobGearESP());
         register(new Hologram());
         register(new TrailMaker());
         register(new NewerNewChunks());
         register(new PotESP());
         register(new CollectibleESP());
+        register(new LightOverlay());
         register(new XRay());
         register(new MotionBlur());
+        register(new CapePhysics());
+        register(new MusicPlayer());
 
         // ====== Player (11) ======
         register(new AutoEat());
@@ -221,6 +222,8 @@ public class ModuleManager {
         register(new Nuker());
         register(new Timer());
         register(new AutoSign());
+        register(new AutoShearer());
+        register(new AutoBreed());
         register(new AutoMine());
         register(new HighwayBuilder());
         register(new NoGhostBlocks());
@@ -240,6 +243,7 @@ public class ModuleManager {
         register(new StorageLooter());
         register(new BetterScaffold());
         register(new FoxyBot());
+        register(new AutoMobFarm());
 
         // ====== Misc (13) ======
         register(new AutoReconnect());

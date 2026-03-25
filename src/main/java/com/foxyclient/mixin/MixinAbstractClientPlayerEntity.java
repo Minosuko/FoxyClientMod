@@ -14,6 +14,8 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+import com.foxyclient.FoxyClient;
+import com.foxyclient.module.render.Freecam;
 
 @Mixin(AbstractClientPlayerEntity.class)
 public abstract class MixinAbstractClientPlayerEntity extends PlayerEntity {
@@ -25,6 +27,16 @@ public abstract class MixinAbstractClientPlayerEntity extends PlayerEntity {
 
     public MixinAbstractClientPlayerEntity(World world, GameProfile profile) {
         super(world, profile);
+    }
+
+    @Inject(method = "getFovMultiplier", at = @At("HEAD"), cancellable = true)
+    private void onGetFovMultiplier(boolean firstPerson, float fovEffectScale, CallbackInfoReturnable<Float> cir) {
+        if (FoxyClient.INSTANCE != null) {
+            Freecam freecam = FoxyClient.INSTANCE.getModuleManager().getModule(Freecam.class);
+            if (freecam != null && freecam.isEnabled()) {
+                cir.setReturnValue(1.0f);
+            }
+        }
     }
 
     @Inject(method = "getSkin", at = @At("HEAD"), cancellable = true)

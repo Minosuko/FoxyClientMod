@@ -14,8 +14,8 @@ import net.minecraft.util.math.Vec3d;
  * Enhanced Elytra flight control.
  */
 public class ElytraFly extends Module {
-    private final ModeSetting mode = addSetting(new ModeSetting("Mode", "Flight mode", "Control", "Control", "Boost", "Packet"));
-    private final NumberSetting speed = addSetting(new NumberSetting("Speed", "Flight speed", 1.5, 0.1, 5.0));
+    private final ModeSetting mode = addSetting(new ModeSetting("Mode", "Flight mode", "Plus", "Control", "Boost", "Packet", "Plus"));
+    private final NumberSetting speed = addSetting(new NumberSetting("Speed", "Flight speed", 2.0, 0.1, 10.0));
     private final BoolSetting autoStart = addSetting(new BoolSetting("AutoStart", "Auto deploy elytra", true));
     private final BoolSetting noDurability = addSetting(new BoolSetting("NoDurability", "Reduce durability usage", false));
 
@@ -65,6 +65,9 @@ public class ElytraFly extends Module {
                 double dz = Math.cos(yaw) * spd * 0.05;
                 double dy = mc.options.jumpKey.isPressed() ? spd * 0.03 : mc.options.sneakKey.isPressed() ? -spd * 0.03 : 0;
                 mc.player.setVelocity(dx, dy, dz);
+            }
+            case "Plus" -> {
+                mc.player.setVelocity(mc.player.getRotationVec(1.0f).multiply(spd));
             }
         }
     }

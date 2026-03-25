@@ -126,9 +126,9 @@ public class FoxyConfigScreen extends Screen {
             addContent(new com.foxyclient.gui.widget.FoxyLabelWidget(textRenderer, contentX, currentY, "§bBackground Music"));
             currentY += 15;
             
-            addContent(CyclingButtonWidget.onOffBuilder(FoxyConfig.INSTANCE.bgMusicEnabled.get())
+            addContent(CyclingButtonWidget.onOffBuilder(FoxyConfig.INSTANCE.menuMusicEnabled.get())
                 .build(contentX, currentY, 200, 20, Text.literal("Enable Music"), (button, value) -> {
-                    FoxyConfig.INSTANCE.bgMusicEnabled.set((Boolean)value);
+                    FoxyConfig.INSTANCE.menuMusicEnabled.set((Boolean)value);
                     FoxyConfig.INSTANCE.save();
                     com.foxyclient.util.FoxyMusicManager.play(); // Auto-restart or stop based on new state
                 }));

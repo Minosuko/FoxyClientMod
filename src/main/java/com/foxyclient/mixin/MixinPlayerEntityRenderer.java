@@ -24,4 +24,26 @@ public class MixinPlayerEntityRenderer {
             }
         }
     }
+
+    @Inject(method = "updateCape", at = @At("TAIL"))
+    private void onUpdateCape(PlayerLikeEntity player, PlayerEntityRenderState state, float tickProgress, CallbackInfo ci) {
+        com.foxyclient.module.render.CapePhysics module = com.foxyclient.FoxyClient.INSTANCE.getModuleManager().getModule(com.foxyclient.module.render.CapePhysics.class);
+        if (module == null || !module.isEnabled()) return;
+
+        float intensity = module.intensity.get().floatValue();
+        float gravity = module.gravity.get().floatValue();
+
+        // field_53536 = Vertical (clamped -6 to 32)
+        // field_53537 = Horizontal (clamped 0 to 150)
+        // field_53538 = Sideways (clamped -20 to 20)
+
+        state.field_53536 += gravity;
+        state.field_53537 *= intensity;
+        state.field_53538 *= intensity;
+
+        if (module.smooth.get()) {
+            // Apply slight damping/smoothing if needed
+            state.field_53537 = net.minecraft.util.math.MathHelper.clamp(state.field_53537, 0.0f, 150.0f);
+        }
+    }
 }

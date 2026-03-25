@@ -23,6 +23,7 @@ public class Freecam extends Module {
     public final NumberSetting speed = addSetting(new NumberSetting("Speed", "Camera speed", 1.0, 0.1, 5.0));
     public final BoolSetting noclip = addSetting(new BoolSetting("Noclip", "Pass through blocks", true));
     private final BoolSetting showPlayer = addSetting(new BoolSetting("ShowPlayer", "Show your original body", true));
+    private final BoolSetting smoothCamera = addSetting(new BoolSetting("SmoothCamera", "Use cinematic camera", true));
 
     // Camera state
     private double camX, camY, camZ;
@@ -31,6 +32,8 @@ public class Freecam extends Module {
     // Saved player state for restoration
     private double savedX, savedY, savedZ;
     private float savedYaw, savedPitch;
+
+    private boolean wasSmooth;
 
     // Delta-time tracking
     private long lastMoveTime;
@@ -44,6 +47,11 @@ public class Freecam extends Module {
     @Override
     public void onEnable() {
         if (nullCheck()) return;
+
+        if (smoothCamera.get()) {
+            wasSmooth = mc.options.smoothCameraEnabled;
+            mc.options.smoothCameraEnabled = true;
+        }
 
         // Snapshot current player position / rotation into camera state
         camX = mc.player.getX();
@@ -64,6 +72,11 @@ public class Freecam extends Module {
     @Override
     public void onDisable() {
         if (nullCheck()) return;
+        
+        if (smoothCamera.get()) {
+            mc.options.smoothCameraEnabled = wasSmooth;
+        }
+        
         // Restore player rotation so the view doesn't snap to where the freecam was
         mc.player.setYaw(savedYaw);
         mc.player.setPitch(savedPitch);

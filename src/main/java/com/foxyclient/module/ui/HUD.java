@@ -18,6 +18,7 @@ public class HUD extends Module {
     public final BoolSetting server = addSetting(new BoolSetting("Server", "Show server address", true));
     public final BoolSetting facing = addSetting(new BoolSetting("Facing", "Show cardinal direction", true));
     public final BoolSetting cps = addSetting(new BoolSetting("CPS", "Show clicks per second", true));
+    public final BoolSetting musicInfo = addSetting(new BoolSetting("Music Info", "Show current track", true));
 
     public HUD() {
         super("HUD", "Configure HUD elements", Category.UI);

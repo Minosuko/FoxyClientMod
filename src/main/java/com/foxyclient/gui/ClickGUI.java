@@ -90,7 +90,7 @@ public class ClickGUI extends Screen {
     private String syncStatus = "";
     private long syncStatusTime = 0;
 
-    private static final String[] SIDEBAR_ITEMS = {"Cheat", "Cosmetic", "UI", "Macro", "Waypoint", "Baritone", "Setting"};
+    private static final String[] SIDEBAR_ITEMS = {"Cheat", "Cosmetic", "UI", "Macro", "Waypoint", "Baritone", "Music", "Setting"};
     private Module listeningKeybind = null;
     private String hoveredDesc = null;
 
@@ -98,6 +98,10 @@ public class ClickGUI extends Screen {
     private ColorSetting activeColorPicker = null;
     private int pickerX, pickerY;
     private boolean isDraggingHue, isDraggingAlpha, isDraggingSB;
+
+    // Draggable Slider State
+    private NumberSetting activeSlider = null;
+    private int sliderX, sliderW;
 
     public ClickGUI() { super(Text.literal("FoxyClient")); }
 
@@ -146,6 +150,7 @@ public class ClickGUI extends Screen {
             case "Cosmetic" -> renderCosmeticPage(context, x, y, w, h, mouseX, mouseY);
             case "Baritone" -> renderBaritonePage(context, x, y, w, h, mouseX, mouseY);
             case "Setting" -> renderSettingPage(context, x, y, w, h, mouseX, mouseY);
+            case "Music" -> renderMusicPage(context, x, y, w, h, mouseX, mouseY);
             default -> renderGrid(context, x, y, w, h, mouseX, mouseY);
         }
         context.disableScissor();
@@ -335,7 +340,7 @@ public class ClickGUI extends Screen {
     }
 
     private void renderSettingPage(DrawContext context, int x, int y, int w, int h, int mx, int my) {
-        renderSettingsList(context, FoxyConfig.INSTANCE.getSettings(), x, y, w, h, mx, my);
+        renderSettingsList(context, java.util.List.of(FoxyConfig.INSTANCE.transitionsEnabled, FoxyConfig.INSTANCE.inGameTransitions), x, y, w, h, mx, my);
     }
 
     private void renderSettingsList(DrawContext context, List<Setting<?>> settings, int x, int y, int w, int h, int mx, int my) {
@@ -359,12 +364,47 @@ public class ClickGUI extends Screen {
                 context.fill(sx+(int)(sw*r)-2, sy+18, sx+(int)(sw*r)+2, sy+24, COL_TEXT);
                 drawText(context, String.format("%.1f", n.get()), sx-textRenderer.getWidth(String.format("%.1f", n.get()))-4, sy+13, COL_ACCENT, true);
             }
+            else if (s instanceof BlockListSetting bls) {
+                int bx = x+w-60;
+                context.fill(bx, sy+12, bx+50, sy+26, COL_CARD_HOV);
+                context.fill(bx, sy+12, bx+50, sy+13, COL_BORDER);
+                drawCenteredText(context, "Edit (" + bls.size() + ")", bx+25, sy+15, COL_ACCENT);
+            }
+            else if (s instanceof EntityListSetting els) {
+                int bx = x+w-60;
+                context.fill(bx, sy+12, bx+50, sy+26, COL_CARD_HOV);
+                context.fill(bx, sy+12, bx+50, sy+13, COL_BORDER);
+                drawCenteredText(context, "Edit (" + els.size() + ")", bx+25, sy+15, COL_ACCENT);
+            }
             else if (s instanceof ModeSetting md) {
                 String str = md.get().toLowerCase();
                 drawText(context, str, x+w-textRenderer.getWidth(str)-8, sy+12, COL_ACCENT, true);
             }
             sy += 35;
         }
+    }
+
+    private void renderMusicPage(DrawContext context, int x, int y, int w, int h, int mx, int my) {
+        int ox = x + 10, oy = y + 10 - (int)scrollAmount;
+        
+        drawText(context, "FOXY MUSIC PLAYER", ox, oy, COL_ACCENT, true);
+        
+        boolean enabled = FoxyConfig.INSTANCE.menuMusicEnabled.get();
+        drawText(context, "BACKGROUND MUSIC", ox, oy+25, COL_TEXT_DIM, true);
+        drawGlassBtn(context, ox, oy+40, 110, 20, enabled ? "§aON" : "§cOFF", enabled);
+        
+        drawText(context, "AUDIO SOURCE", ox, oy+75, COL_TEXT_DIM, true);
+        drawGlassBtn(context, ox, oy+90, 110, 20, FoxyConfig.INSTANCE.bgMusicType.get(), false);
+        
+        if (FoxyConfig.INSTANCE.bgMusicType.get().equals("Custom")) {
+            drawShimmerBtn(context, ox, oy+125, 110, 20, "§bSelect Audio", COL_CARD);
+            String name = FoxyConfig.INSTANCE.customMusicName.get();
+            if(!name.isEmpty()) drawText(context, "Track: " + name, ox, oy+150, COL_TEXT, false);
+        }
+        
+        int px = x + w/2 - 50, py = y + h - 35;
+        drawShimmerBtn(context, px, py, 45, 20, "§aPLAY", 0x4400FF00);
+        drawShimmerBtn(context, px + 55, py, 45, 20, "§cSTOP", 0x44FF0000);
     }
 
     private void renderMacroPage(DrawContext context, int x, int y, int w, int h, int mx, int my) {
@@ -420,7 +460,8 @@ public class ClickGUI extends Screen {
         }
         if (selectedSidebar.equals("Waypoint")) return FoxyClient.INSTANCE.getWaypointManager().getAll().size() * 26 + 10;
         if (selectedSidebar.equals("Baritone")) return BaritoneSettings.SETTINGS.size() * 35 + 10;
-        if (selectedSidebar.equals("Setting")) return FoxyConfig.INSTANCE.getSettings().size() * 35 + 10;
+        if (selectedSidebar.equals("Setting")) return 2 * 35 + 10;
+        if (selectedSidebar.equals("Music")) return 200;
         if (selectedSidebar.equals("Cheat")) {
             List<Module> mods = getFilteredModules();
             int cw = (w - 3*CARD_GAP)/4, th = 0, rowH = 0;
@@ -477,6 +518,18 @@ public class ClickGUI extends Screen {
                     context.fill(sx, sy+3, sx+(int)(sw*r), sy+5, COL_ACCENT);
                     context.fill(sx+(int)(sw*r)-2, sy+1, sx+(int)(sw*r)+2, sy+7, COL_TEXT); // Knob
                     drawText(context, String.format("%.1f", n.get()), sx-textRenderer.getWidth(String.format("%.1f", n.get()))-4, sy, COL_ACCENT, true);
+                }
+                else if (s instanceof BlockListSetting bls) {
+                    int bx = x+w-50;
+                    context.fill(bx, sy, bx+42, sy+14, COL_CARD_HOV);
+                    context.fill(bx, sy, bx+42, sy+1, COL_BORDER);
+                    drawCenteredText(context, "Edit (" + bls.size() + ")", bx+21, sy+4, COL_ACCENT);
+                }
+                else if (s instanceof EntityListSetting els) {
+                    int bx = x+w-50;
+                    context.fill(bx, sy, bx+42, sy+14, COL_CARD_HOV);
+                    context.fill(bx, sy, bx+42, sy+1, COL_BORDER);
+                    drawCenteredText(context, "Edit (" + els.size() + ")", bx+21, sy+4, COL_ACCENT);
                 }
                 else if (s instanceof ModeSetting md) { String str = md.get().toLowerCase(); drawText(context, str, x+w-textRenderer.getWidth(str)-8, sy, COL_ACCENT, true); }
                 sy += 22;
@@ -668,19 +721,72 @@ public class ClickGUI extends Screen {
                 cy += 26; 
             }
         } else if (selectedSidebar.equals("Baritone") || selectedSidebar.equals("Setting")) {
-            List<Setting<?>> settings = selectedSidebar.equals("Baritone") ? BaritoneSettings.SETTINGS : FoxyConfig.INSTANCE.getSettings();
+            List<Setting<?>> settings = selectedSidebar.equals("Baritone") ? BaritoneSettings.SETTINGS : java.util.List.of(FoxyConfig.INSTANCE.transitionsEnabled, FoxyConfig.INSTANCE.inGameTransitions);
             int sy = gy+20+5-(int)scrollAmount;
             for (Setting<?> s : settings) {
                 if (mx>=gx && mx<=gx+gw && my>=sy && my<=sy+32) {
                     if (s instanceof BoolSetting b) b.set(!b.get());
                     else if (s instanceof ModeSetting md) md.cycle();
                     else if (s instanceof NumberSetting n) {
-                        float r = MathHelper.clamp((float)((mx-(gx+gw-80))/72), 0, 1);
+                        activeSlider = n;
+                        sliderX = gx+gw-80;
+                        sliderW = 72;
+                        float r = MathHelper.clamp((float)((mx-sliderX)/sliderW), 0, 1);
                         n.set(Math.round((n.getMin() + r*(n.getMax()-n.getMin()))*10.0)/10.0);
+                    }
+                    else if (s instanceof BlockListSetting bls) {
+                        MinecraftClient.getInstance().setScreen(new BlockSelectorScreen(bls, () -> FoxyConfig.INSTANCE.save(), this));
+                    }
+                    else if (s instanceof EntityListSetting els) {
+                        MinecraftClient.getInstance().setScreen(new EntitySelectorScreen(els, () -> FoxyConfig.INSTANCE.save(), this));
                     }
                     return true;
                 }
                 sy += 35;
+            }
+        } else if (selectedSidebar.equals("Music")) {
+            int ox = gx + 10, oy = gy + 10 - (int)scrollAmount;
+            if (mx >= ox && mx <= ox + 110 && my >= oy + 40 && my <= oy + 60) {
+                FoxyConfig.INSTANCE.menuMusicEnabled.set(!FoxyConfig.INSTANCE.menuMusicEnabled.get());
+                com.foxyclient.util.FoxyMusicManager.play();
+                return true;
+            }
+            if (mx >= ox && mx <= ox + 110 && my >= oy + 90 && my <= oy + 110) {
+                FoxyConfig.INSTANCE.bgMusicType.cycle();
+                com.foxyclient.util.FoxyMusicManager.play();
+                return true;
+            }
+            if (FoxyConfig.INSTANCE.bgMusicType.get().equals("Custom") && mx >= ox && mx <= ox + 110 && my >= oy + 125 && my <= oy + 145) {
+                new Thread(() -> {
+                    org.lwjgl.PointerBuffer filters = org.lwjgl.system.MemoryUtil.memAllocPointer(3);
+                    filters.put(org.lwjgl.system.MemoryUtil.memAddress(org.lwjgl.system.MemoryUtil.memUTF8("*.mp3")));
+                    filters.put(org.lwjgl.system.MemoryUtil.memAddress(org.lwjgl.system.MemoryUtil.memUTF8("*.ogg")));
+                    filters.put(org.lwjgl.system.MemoryUtil.memAddress(org.lwjgl.system.MemoryUtil.memUTF8("*.wav")));
+                    filters.flip();
+                    String res = org.lwjgl.util.tinyfd.TinyFileDialogs.tinyfd_openFileDialog("Select Audio", System.getProperty("user.home") + File.separator, filters, "Audio Files", false);
+                    org.lwjgl.system.MemoryUtil.memFree(filters);
+                    if (res != null) {
+                        File f = new File(res);
+                        if (f.exists()) {
+                            MinecraftClient.getInstance().execute(() -> {
+                                FoxyConfig.INSTANCE.customMusicPath.set(f.getAbsolutePath());
+                                FoxyConfig.INSTANCE.customMusicName.set(f.getName());
+                                FoxyConfig.INSTANCE.save();
+                                com.foxyclient.util.FoxyMusicManager.play();
+                            });
+                        }
+                    }
+                }).start();
+                return true;
+            }
+            int px = gx + gw / 2 - 50, py = gy + gh - 35;
+            if (mx >= px && mx <= px + 45 && my >= py && my <= py + 20) {
+                com.foxyclient.util.FoxyMusicManager.play();
+                return true;
+            }
+            if (mx >= px + 55 && mx <= px + 100 && my >= py && my <= py + 20) {
+                com.foxyclient.util.FoxyMusicManager.stop();
+                return true;
             }
         } else {
             int cw = (gw-3*CARD_GAP)/4; List<Module> mods = getFilteredModules(); int cy = gy-(int)scrollAmount;
@@ -709,8 +815,21 @@ public class ClickGUI extends Screen {
                                 }
                                 else if (s instanceof ModeSetting md) md.cycle();
                                 else if (s instanceof NumberSetting n) {
-                                    float r = MathHelper.clamp((float)((mx-(cx+cw-60))/52), 0, 1);
+                                    activeSlider = n;
+                                    sliderX = cx+cw-60;
+                                    sliderW = 52;
+                                    float r = MathHelper.clamp((float)((mx-sliderX)/sliderW), 0, 1);
                                     n.set(Math.round((n.getMin() + r*(n.getMax()-n.getMin()))*10.0)/10.0);
+                                }
+                                else if (s instanceof BlockListSetting bls) {
+                                    if (mx >= cx+cw-50) {
+                                        MinecraftClient.getInstance().setScreen(new BlockSelectorScreen(bls, () -> FoxyClient.INSTANCE.getModuleManager().saveConfig(), this));
+                                    }
+                                }
+                                else if (s instanceof EntityListSetting els) {
+                                    if (mx >= cx+cw-50) {
+                                        MinecraftClient.getInstance().setScreen(new EntitySelectorScreen(els, () -> FoxyClient.INSTANCE.getModuleManager().saveConfig(), this));
+                                    }
                                 }
                                 return true; 
                             }
@@ -742,6 +861,11 @@ public class ClickGUI extends Screen {
     @Override 
     public boolean mouseDragged(Click c, double dx, double dy) { 
         if (isDraggingSkin) { skinYaw -= (float)dx*2; skinPitch = MathHelper.clamp(skinPitch - (float)dy*2, -90, 90); return true; } 
+        if (activeSlider != null) {
+            float r = MathHelper.clamp((float)((c.x() - sliderX) / sliderW), 0, 1);
+            activeSlider.set(Math.round((activeSlider.getMin() + r*(activeSlider.getMax()-activeSlider.getMin()))*10.0)/10.0);
+            return true;
+        }
         if (activeColorPicker != null) {
             double mx = c.x(), my = c.y();
             float[] hsb = activeColorPicker.getHSB();
@@ -773,6 +897,7 @@ public class ClickGUI extends Screen {
         isDraggingHue = false; 
         isDraggingAlpha = false; 
         isDraggingSB = false; 
+        activeSlider = null;
         return super.mouseReleased(c); 
     }
     @Override public boolean mouseScrolled(double mx, double my, double h, double v) { targetScroll = Math.max(0, targetScroll - (float)v * 40); return true; }

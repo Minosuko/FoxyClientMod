@@ -19,11 +19,15 @@ public class Step extends Module {
     @EventHandler
     public void onTick(TickEvent event) {
         if (nullCheck()) return;
-        // mc.player.setStepHeight(height.get().floatValue());
+        if (mc.player.getAttributeInstance(net.minecraft.entity.attribute.EntityAttributes.STEP_HEIGHT) != null) {
+            mc.player.getAttributeInstance(net.minecraft.entity.attribute.EntityAttributes.STEP_HEIGHT).setBaseValue(height.get().doubleValue());
+        }
     }
 
     @Override
     public void onDisable() {
-        // if (!nullCheck()) mc.player.setStepHeight(0.6f);
+        if (!nullCheck() && mc.player.getAttributeInstance(net.minecraft.entity.attribute.EntityAttributes.STEP_HEIGHT) != null) {
+            mc.player.getAttributeInstance(net.minecraft.entity.attribute.EntityAttributes.STEP_HEIGHT).setBaseValue(0.6);
+        }
     }
 }

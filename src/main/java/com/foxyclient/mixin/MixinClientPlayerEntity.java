@@ -7,7 +7,9 @@ import net.minecraft.client.network.ClientPlayerEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import com.foxyclient.module.movement.NoSlow;
 
 @Mixin(ClientPlayerEntity.class)
 public abstract class MixinClientPlayerEntity {
@@ -17,6 +19,17 @@ public abstract class MixinClientPlayerEntity {
         if (FoxyClient.INSTANCE == null) return;
         RotationManager.update();
         FoxyClient.INSTANCE.getEventBus().post(TickEvent.INSTANCE);
+    }
+
+    @Redirect(method = {"isBlockedFromSprinting", "applyMovementSpeedFactors"}, at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isUsingItem()Z"))
+    private boolean redirectIsUsingItem(ClientPlayerEntity instance) {
+        if (FoxyClient.INSTANCE != null) {
+            NoSlow noSlow = FoxyClient.INSTANCE.getModuleManager().getModule(NoSlow.class);
+            if (noSlow != null && noSlow.shouldNoSlow()) {
+                return false;
+            }
+        }
+        return instance.isUsingItem();
     }
 
     private float originalYaw, originalPitch;

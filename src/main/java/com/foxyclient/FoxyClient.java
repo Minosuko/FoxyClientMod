@@ -28,7 +28,7 @@ import java.util.List;
  */
 public class FoxyClient implements ClientModInitializer {
     public static final String NAME = "FoxyClient";
-    public static final String VERSION = "1.3.1";
+    public static final String VERSION = "1.3.2";
     public static final Logger LOGGER = LoggerFactory.getLogger(NAME);
 
     public static FoxyClient INSTANCE;
@@ -275,6 +275,15 @@ public class FoxyClient implements ClientModInitializer {
             int cpsWidth = textRenderer.getWidth(cpsStr.replaceAll("§.", ""));
             context.fill(screenWidth - cpsWidth - 6, bottomRightY - 2, screenWidth - 2, bottomRightY + 10, 0x88000000);
             context.drawTextWithShadow(textRenderer, cpsStr, screenWidth - cpsWidth - 4, bottomRightY, 0xFFFFFFFF);
+            bottomRightY -= 12;
+        }
+
+        // Music Info
+        if (hud.musicInfo.get() && com.foxyclient.util.FoxyMusicManager.isPlaying()) {
+            String musicText = "§7Playing: §b" + com.foxyclient.util.FoxyMusicManager.getCurrentTrackName();
+            int musicWidth = textRenderer.getWidth(musicText.replaceAll("§.", ""));
+            context.fill(screenWidth - musicWidth - 6, bottomRightY - 2, screenWidth - 2, bottomRightY + 10, 0x88000000);
+            context.drawTextWithShadow(textRenderer, musicText, screenWidth - musicWidth - 4, bottomRightY, 0xFFFFFFFF);
             bottomRightY -= 12;
         }
 

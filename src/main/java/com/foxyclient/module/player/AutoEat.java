@@ -34,7 +34,10 @@ public class AutoEat extends Module {
     @EventHandler
     public void onTick(TickEvent event) {
         if (nullCheck()) return;
-        if (mc.currentScreen != null) return;
+
+        // Skip eating if an inventory screen is open (to avoid messing up clicks).
+        // Standard menus (GameMenuScreen/ChatScreen) are allowed so eating continues.
+        if (mc.currentScreen != null && !eating && mc.currentScreen instanceof net.minecraft.client.gui.screen.ingame.HandledScreen) return;
 
         boolean foxyBotActive = isFoxyBotActive();
 
@@ -63,12 +66,16 @@ public class AutoEat extends Module {
             previousSlot = mc.player.getInventory().selectedSlot;
             mc.player.getInventory().selectedSlot = foodSlot;
             mc.options.useKey.setPressed(true);
+            mc.interactionManager.interactItem(mc.player, net.minecraft.util.Hand.MAIN_HAND);
             eating = true;
         }
 
         // Continually enforce the keypress state to prevent window focus loss from clearing it
         if (eating) {
             mc.options.useKey.setPressed(true);
+            if (!mc.player.isUsingItem()) {
+                mc.interactionManager.interactItem(mc.player, net.minecraft.util.Hand.MAIN_HAND);
+            }
         }
     }
 

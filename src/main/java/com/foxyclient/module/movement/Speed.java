@@ -12,7 +12,7 @@ import com.foxyclient.setting.NumberSetting;
  * Increases movement speed.
  */
 public class Speed extends Module {
-    private final ModeSetting mode = addSetting(new ModeSetting("Mode", "Speed mode", "Vanilla", "Vanilla", "Strafe", "BHop"));
+    private final ModeSetting mode = addSetting(new ModeSetting("Mode", "Speed mode", "Vanilla", "Vanilla", "Strafe", "BHop", "Plus"));
     private final NumberSetting speedMultiplier = addSetting(new NumberSetting("Speed", "Speed multiplier", 1.5, 0.5, 5.0));
 
     public Speed() {
@@ -21,7 +21,7 @@ public class Speed extends Module {
 
     @EventHandler
     public void onTick(TickEvent event) {
-        if (nullCheck()) return;
+        if (nullCheck() || mc.player.isGliding()) return;
         if (!mc.player.isOnGround() && mode.get().equals("Vanilla")) return;
 
         double yaw = Math.toRadians(mc.player.getYaw());
@@ -61,6 +61,11 @@ public class Speed extends Module {
                         mc.player.getVelocity().y,
                         Math.cos(moveAngle) * spd
                     );
+                }
+            }
+            case "Plus" -> {
+                if (mc.player.isOnGround()) {
+                    mc.player.setVelocity(mc.player.getVelocity().multiply(speedMultiplier.get(), 1, speedMultiplier.get()));
                 }
             }
         }

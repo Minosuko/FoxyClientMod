@@ -37,7 +37,7 @@ public class FoxyConfig {
     public final com.foxyclient.setting.StringSetting customSkinPath = register(new com.foxyclient.setting.StringSetting("customSkinPath", "Custom Skin Path", ""));
 
     // Music Settings
-    public final BoolSetting bgMusicEnabled = register(new BoolSetting("bgMusicEnabled", "Background Music", true));
+    public final BoolSetting menuMusicEnabled = register(new BoolSetting("menuMusicEnabled", "Menu Music", true));
     public final ModeSetting bgMusicType = register(new ModeSetting("bgMusicType", "Music Source", "Default", "Default", "Custom"));
     public final com.foxyclient.setting.StringSetting customMusicPath = register(new com.foxyclient.setting.StringSetting("customMusicPath", "Custom Music Path", ""));
     public final com.foxyclient.setting.StringSetting customMusicName = register(new com.foxyclient.setting.StringSetting("customMusicName", "Custom Music Name", ""));
