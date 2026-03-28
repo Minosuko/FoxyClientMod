@@ -52,10 +52,11 @@ public class FoxyMusicManager {
         if ("Default".equals(mode)) {
             stopCustomAudio(); // Ensure custom isn't playing
             if (vanillaMusicInstance == null || !mc.getSoundManager().isPlaying(vanillaMusicInstance)) {
+                float moduleVol = (player != null) ? player.volume.get().floatValue() : 1.0f;
                 vanillaMusicInstance = new PositionedSoundInstance(
                     FoxySounds.BACKGROUND_MUSIC.id(),
                     SoundCategory.MUSIC,
-                    1.0f,
+                    moduleVol,
                     1.0f,
                     Random.create(),
                     true, // repeat
@@ -126,20 +127,26 @@ public class FoxyMusicManager {
             else stop();
         }
 
-        // Apply volume adjustments to custom audio dynamically based on master & music sliders
-        if (customAudioRunning && currentDataLine != null && currentDataLine.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+        // Apply volume adjustments to custom audio dynamically
+        if (customAudioRunning && currentDataLine != null) {
             float masterVol = mc.options.getSoundVolume(SoundCategory.MASTER);
             float musicVol = mc.options.getSoundVolume(SoundCategory.MUSIC);
-            float finalVol = masterVol * musicVol; // 0.0 to 1.0
+            float moduleVol = player.volume.get().floatValue();
+            float finalVol = masterVol * musicVol * moduleVol; // 0.0 to 2.0+
 
-            FloatControl gainControl = (FloatControl) currentDataLine.getControl(FloatControl.Type.MASTER_GAIN);
-            if (finalVol <= 0.001f) {
-                gainControl.setValue(gainControl.getMinimum());
-            } else {
-                // Convert linear volume to decibels
-                float db = (float) (Math.log10(finalVol) * 20.0f);
-                gainControl.setValue(Math.max(gainControl.getMinimum(), Math.min(gainControl.getMaximum(), db)));
+            if (currentDataLine.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+                FloatControl gainControl = (FloatControl) currentDataLine.getControl(FloatControl.Type.MASTER_GAIN);
+                if (finalVol <= 0.001f) {
+                    gainControl.setValue(gainControl.getMinimum());
+                } else {
+                    // Convert linear volume to decibels
+                    float db = (float) (Math.log10(Math.min(finalVol, 2.0f)) * 20.0f);
+                    gainControl.setValue(Math.max(gainControl.getMinimum(), Math.min(gainControl.getMaximum(), db)));
+                }
             }
+        } else if (vanillaMusicInstance != null && !mc.isPaused()) {
+            // For vanilla sound, we may want to restart if volume changed significantly, 
+            // but it's better to just keep it playing. The sound category slider handles some of it.
         }
     }
 

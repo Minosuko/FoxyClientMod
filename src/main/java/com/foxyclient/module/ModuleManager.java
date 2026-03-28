@@ -467,10 +467,13 @@ public class ModuleManager {
         }
 
         if (obj.has("settings")) {
-            JsonObject settings = obj.getAsJsonObject("settings");
-            for (var setting : module.getSettings()) {
-                JsonElement el = settings.get(setting.getName());
-                if (el != null) setting.fromJson(el);
+            JsonElement settingsEl = obj.get("settings");
+            if (settingsEl != null && settingsEl.isJsonObject()) {
+                JsonObject settings = settingsEl.getAsJsonObject();
+                for (var setting : module.getSettings()) {
+                    JsonElement el = settings.get(setting.getName());
+                    if (el != null) setting.fromJson(el);
+                }
             }
         }
 
