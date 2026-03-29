@@ -1,6 +1,7 @@
 package com.foxyclient.mixin;
 
 import com.foxyclient.FoxyClient;
+import com.foxyclient.event.events.EntityDeathEvent;
 import com.foxyclient.module.Module;
 import com.foxyclient.module.render.Fullbright;
 import com.foxyclient.util.RotationManager;
@@ -112,6 +113,13 @@ public abstract class MixinLivingEntity {
                     accessor.setLastHeadYaw(prevYaw);
                 }
             }
+        }
+    }
+
+    @Inject(method = "handleStatus", at = @At("HEAD"))
+    private void onHandleStatus(byte status, CallbackInfo ci) {
+        if (FoxyClient.INSTANCE != null && status == 3) {
+            FoxyClient.INSTANCE.getEventBus().post(new EntityDeathEvent((LivingEntity) (Object) this));
         }
     }
 

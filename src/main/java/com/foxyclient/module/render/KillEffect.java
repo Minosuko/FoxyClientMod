@@ -1,6 +1,7 @@
 package com.foxyclient.module.render;
 
 import com.foxyclient.event.EventHandler;
+import com.foxyclient.event.events.AttackEntityEvent;
 import com.foxyclient.event.events.EntityDeathEvent;
 import com.foxyclient.event.events.RenderEvent;
 import com.foxyclient.module.Category;
@@ -12,10 +13,17 @@ import com.foxyclient.util.RenderUtil;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.LightningEntity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.particle.ParticleTypes;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.math.Vec3d;
 import org.joml.Matrix4f;
 
@@ -27,13 +35,22 @@ import java.awt.*;
  */
 public class KillEffect extends Module {
     private final ModeSetting effect = addSetting(new ModeSetting("Effect", "Kill effect", "Lightning", "Lightning", "Particles", "Totem", "None"));
+    private final ModeSetting particle = addSetting(new ModeSetting("Particle", "Particle type", "Crit", "Heart", "Flame", "Smoke", "Magic", "Crit", "Snow", "Slime", "Totem"));
     private final BoolSetting playersOnly = addSetting(new BoolSetting("PlayersOnly", "Only affect players", false));
     private final BoolSetting selfKill = addSetting(new BoolSetting("SelfKill", "Show effect when you kill something", true));
     private final BoolSetting othersKill = addSetting(new BoolSetting("OthersKill", "Show effect when others kill", true));
-    private final ColorSetting color = addSetting(new ColorSetting("Color", "Effect color", new Color(255, 50, 50)));
+
+    private int lastAttackedId = -1;
+    private long lastAttackTime = 0;
 
     public KillEffect() {
         super("KillEffect", "Visual effects on kills", Category.RENDER);
+    }
+
+    @EventHandler
+    public void onAttack(AttackEntityEvent event) {
+        lastAttackedId = event.getEntity().getId();
+        lastAttackTime = System.currentTimeMillis();
     }
 
     @EventHandler
@@ -46,9 +63,14 @@ public class KillEffect extends Module {
 
         if (playersOnly.get() && !isPlayer) return;
 
-        boolean isSelf = victim.getUuid().equals(mc.player.getUuid());
-        if (isSelf && !selfKill.get()) return;
-        if (!isSelf && !othersKill.get()) return;
+        // Check if the player killed this entity
+        boolean wasKilledByMe = victim.getId() == lastAttackedId && (System.currentTimeMillis() - lastAttackTime) < 2000;
+
+        if (wasKilledByMe) {
+            if (!selfKill.get()) return;
+        } else {
+            if (!othersKill.get()) return;
+        }
 
         String effectName = effect.get();
         switch (effectName) {
@@ -68,21 +90,42 @@ public class KillEffect extends Module {
     }
 
     private void spawnLightning(LivingEntity victim) {
-        // Simple lightning effect at victim's position
-        // In a real implementation, we'd use a lightning entity or particle effect
-        // For now, we'll just print a message
-        System.out.println("Lightning effect at " + victim.getName().getString());
+        if (mc.world == null) return;
+        
+        LightningEntity lightning = new LightningEntity(EntityType.LIGHTNING_BOLT, mc.world);
+        lightning.refreshPositionAfterTeleport(victim.getEntityPos());
+        lightning.setCosmetic(true);
+        mc.world.addEntity(lightning);
     }
 
     private void spawnParticles(LivingEntity victim) {
-        // Spawn particles at victim's position
-        // This would use ParticleUtil.spawnParticles
-        System.out.println("Particles effect at " + victim.getName().getString());
+        if (mc.world == null) return;
+        
+        net.minecraft.particle.ParticleEffect type = switch (particle.get()) {
+            case "Heart" -> ParticleTypes.HEART;
+            case "Flame" -> ParticleTypes.FLAME;
+            case "Smoke" -> ParticleTypes.SMOKE;
+            case "Magic" -> ParticleTypes.ENCHANTED_HIT;
+            case "Crit" -> ParticleTypes.CRIT;
+            case "Snow" -> ParticleTypes.SNOWFLAKE;
+            case "Slime" -> ParticleTypes.ITEM_SLIME;
+            case "Totem" -> ParticleTypes.TOTEM_OF_UNDYING;
+            default -> ParticleTypes.EXPLOSION;
+        };
+        
+        for (int i = 0; i < 20; i++) {
+            mc.world.addParticleClient(type, victim.getX(), victim.getY() + victim.getHeight() / 2, victim.getZ(), 
+                mc.world.random.nextGaussian() * 0.1, 
+                mc.world.random.nextGaussian() * 0.1, 
+                mc.world.random.nextGaussian() * 0.1);
+        }
     }
 
     private void spawnTotem(LivingEntity victim) {
-        // Spawn totem effect at victim's position
-        // This would use RenderUtil.drawTotem
-        System.out.println("Totem effect at " + victim.getName().getString());
+        if (mc.player == null || mc.world == null) return;
+        
+        mc.gameRenderer.showFloatingItem(new ItemStack(Items.TOTEM_OF_UNDYING));
+        mc.world.playSoundClient(mc.player.getX(), mc.player.getY(), mc.player.getZ(), 
+            SoundEvents.ITEM_TOTEM_USE, SoundCategory.PLAYERS, 1.0F, 1.0F, false);
     }
 }
