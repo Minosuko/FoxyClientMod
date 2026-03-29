@@ -13,6 +13,8 @@ public class FoxySounds {
     public static final SoundEvent BACKGROUND_MUSIC = SoundEvent.of(BACKGROUND_MUSIC_ID);
 
     public static void register() {
-        // Registry.register(Registries.SOUND_EVENT, BACKGROUND_MUSIC_ID, BACKGROUND_MUSIC);
+        // Do NOT register to Registries.SOUND_EVENT!
+        // This causes registry sync failures when opening LAN to Vanilla players.
+        // SoundManager can play via ID directly from sounds.json without global registry.
     }
 }

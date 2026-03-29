@@ -389,8 +389,12 @@ public class ClickGUI extends Screen {
         
         drawText(context, "FOXY MUSIC PLAYER", ox, oy, COL_ACCENT, true);
         
-        boolean enabled = FoxyConfig.INSTANCE.menuMusicEnabled.get();
-        drawText(context, "BACKGROUND MUSIC", ox, oy+25, COL_TEXT_DIM, true);
+        boolean inGame = MinecraftClient.getInstance().world != null;
+        boolean enabled = inGame ? 
+            (FoxyClient.INSTANCE.getModuleManager().getModule(com.foxyclient.module.render.MusicPlayer.class).isEnabled()) : 
+            FoxyConfig.INSTANCE.menuMusicEnabled.get();
+            
+        drawText(context, inGame ? "IN-GAME MUSIC" : "MENU MUSIC", ox, oy+25, COL_TEXT_DIM, true);
         drawGlassBtn(context, ox, oy+40, 110, 20, enabled ? "§aON" : "§cOFF", enabled);
         
         drawText(context, "AUDIO SOURCE", ox, oy+75, COL_TEXT_DIM, true);
@@ -747,8 +751,14 @@ public class ClickGUI extends Screen {
         } else if (selectedSidebar.equals("Music")) {
             int ox = gx + 10, oy = gy + 10 - (int)scrollAmount;
             if (mx >= ox && mx <= ox + 110 && my >= oy + 40 && my <= oy + 60) {
-                FoxyConfig.INSTANCE.menuMusicEnabled.set(!FoxyConfig.INSTANCE.menuMusicEnabled.get());
-                com.foxyclient.util.FoxyMusicManager.play();
+                boolean inGame = MinecraftClient.getInstance().world != null;
+                if (inGame) {
+                    Module mp = FoxyClient.INSTANCE.getModuleManager().getModule(com.foxyclient.module.render.MusicPlayer.class);
+                    if (mp != null) mp.toggle();
+                } else {
+                    FoxyConfig.INSTANCE.menuMusicEnabled.set(!FoxyConfig.INSTANCE.menuMusicEnabled.get());
+                    com.foxyclient.util.FoxyMusicManager.play();
+                }
                 return true;
             }
             if (mx >= ox && mx <= ox + 110 && my >= oy + 90 && my <= oy + 110) {
@@ -781,10 +791,24 @@ public class ClickGUI extends Screen {
             }
             int px = gx + gw / 2 - 50, py = gy + gh - 35;
             if (mx >= px && mx <= px + 45 && my >= py && my <= py + 20) {
+                boolean inGame = MinecraftClient.getInstance().world != null;
+                if (inGame) {
+                    Module mp = FoxyClient.INSTANCE.getModuleManager().getModule(com.foxyclient.module.render.MusicPlayer.class);
+                    if (mp != null && !mp.isEnabled()) mp.setEnabled(true);
+                } else {
+                    FoxyConfig.INSTANCE.menuMusicEnabled.set(true);
+                }
                 com.foxyclient.util.FoxyMusicManager.play();
                 return true;
             }
             if (mx >= px + 55 && mx <= px + 100 && my >= py && my <= py + 20) {
+                boolean inGame = MinecraftClient.getInstance().world != null;
+                if (inGame) {
+                    Module mp = FoxyClient.INSTANCE.getModuleManager().getModule(com.foxyclient.module.render.MusicPlayer.class);
+                    if (mp != null && mp.isEnabled()) mp.setEnabled(false);
+                } else {
+                    FoxyConfig.INSTANCE.menuMusicEnabled.set(false);
+                }
                 com.foxyclient.util.FoxyMusicManager.stop();
                 return true;
             }

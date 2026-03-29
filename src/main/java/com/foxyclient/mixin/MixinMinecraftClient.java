@@ -29,8 +29,8 @@ public abstract class MixinMinecraftClient {
         if (screen != null && mc.world == null) {
             com.foxyclient.util.FoxyMusicManager.play();
         } else if (screen == null) {
-            // Entering game world (or just closing a popup)
-            com.foxyclient.util.FoxyMusicManager.stop();
+            // Screen closing — use softStop which respects MusicPlayer state
+            com.foxyclient.util.FoxyMusicManager.softStop();
         }
 
         // If ScreenTransitionManager is completing a transition, let the setScreen proceed
