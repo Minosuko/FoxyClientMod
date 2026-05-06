@@ -48,8 +48,9 @@ public class Freecam extends Module {
     public void onEnable() {
         if (nullCheck()) return;
 
+        // Always save the smooth camera state before we potentially change it
+        wasSmooth = mc.options.smoothCameraEnabled;
         if (smoothCamera.get()) {
-            wasSmooth = mc.options.smoothCameraEnabled;
             mc.options.smoothCameraEnabled = true;
         }
 
@@ -73,9 +74,8 @@ public class Freecam extends Module {
     public void onDisable() {
         if (nullCheck()) return;
         
-        if (smoothCamera.get()) {
-            mc.options.smoothCameraEnabled = wasSmooth;
-        }
+        // Always restore smooth camera state unconditionally
+        mc.options.smoothCameraEnabled = wasSmooth;
         
         // Restore player rotation so the view doesn't snap to where the freecam was
         mc.player.setYaw(savedYaw);

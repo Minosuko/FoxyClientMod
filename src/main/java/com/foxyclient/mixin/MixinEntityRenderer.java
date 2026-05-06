@@ -32,8 +32,39 @@ public abstract class MixinEntityRenderer<T extends Entity, S extends EntityRend
             state.invisible = false;
         }
 
-        // Render nametags (must happen when MatrixStack is set up at the entity)
-        // Wait, updateRenderState doesn't have MatrixStack. We need to inject into render() TAIL.
+        // FoxyMoonlightClient Nametags formatting
+        if (entity instanceof net.minecraft.entity.player.PlayerEntity) {
+            MinecraftClient client = MinecraftClient.getInstance();
+            boolean isSelf = client.player != null && entity.getUuid().equals(client.player.getUuid());
+            ((IEntityRenderState) state).foxyclient$setSelf(isSelf);
+
+            com.foxyclient.module.ui.Nametags module = com.foxyclient.module.ui.Nametags.INSTANCE;
+
+            if (module != null && module.isEnabled() && state.displayName != null) {
+                net.minecraft.text.Text original = state.displayName;
+                net.minecraft.text.Text modified = original;
+
+                if (!isSelf) {
+                    if (module.healthCount.get()) {
+                        float health = ((net.minecraft.entity.player.PlayerEntity) entity).getHealth();
+                        int color = health > 15 ? 0x55FF55 : (health > 7 ? 0xFFFF55 : 0xFF5555);
+                        String formattedHealth = String.format(" §c%d\u2764", (int) health); // red heart
+                        modified = modified.copy().append(net.minecraft.text.Text.literal(formattedHealth));
+                    }
+                    if (module.distance.get() && client.player != null) {
+                        int distance = (int) client.player.distanceTo(entity);
+                        modified = modified.copy().append(net.minecraft.text.Text.literal(String.format(" §7[%dm]", distance)));
+                    }
+                }
+
+                if (isSelf && module.showLogo.get()) {
+                    // Pad display name with spaces on the left for the badge
+                    modified = net.minecraft.text.Text.empty().append("    ").append(modified);
+                }
+
+                state.displayName = modified;
+            }
+        }
     }
 
     @Inject(method = "shouldRender", at = @At("HEAD"), cancellable = true)
@@ -42,16 +73,6 @@ public abstract class MixinEntityRenderer<T extends Entity, S extends EntityRend
         if (freecam != null && freecam.isEnabled() && !freecam.shouldHidePlayer()) {
             if (MinecraftClient.getInstance().player != null && entity == MinecraftClient.getInstance().player) {
                 cir.setReturnValue(true);
-            }
-        }
-    }
-
-    @Inject(method = "hasLabel", at = @At("HEAD"), cancellable = true)
-    private void onHasLabel(T entity, double squaredDistanceToCamera, CallbackInfoReturnable<Boolean> cir) {
-        if (FoxyClient.INSTANCE != null) {
-            Module nametags = FoxyClient.INSTANCE.getModuleManager().getModule("Nametags");
-            if (nametags != null && nametags.isEnabled() && entity.getType() == EntityType.PLAYER) {
-                cir.setReturnValue(false);
             }
         }
     }

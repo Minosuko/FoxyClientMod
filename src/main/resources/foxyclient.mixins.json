@@ -12,6 +12,7 @@
         "MixinClientCommonNetworkHandler",
         "MixinClientConnection",
         "MixinWorldRenderer",
+        "MixinFogRenderer",
         "MixinKeyboardInput",
         "MixinInGameHud",
         "MixinMouse",

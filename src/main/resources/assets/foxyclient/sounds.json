@@ -7,5 +7,68 @@
         "stream": true
       }
     ]
+  },
+  "kuronami_ace": {
+    "category": "player",
+    "sounds": [
+      {
+        "name": "foxyclient:KuroNamiAceSound",
+        "stream": false
+      }
+    ]
+  },
+  "champions_2023_finisher_1": {
+    "category": "player",
+    "sounds": [
+      {
+        "name": "foxyclient:Champions_2023_Finisher_1",
+        "stream": false
+      }
+    ]
+  },
+  "champions_2023_finisher_2": {
+    "category": "player",
+    "sounds": [
+      {
+        "name": "foxyclient:Champions_2023_Finisher_2",
+        "stream": false
+      }
+    ]
+  },
+  "champions_2023_ace": {
+    "category": "player",
+    "sounds": [
+      {
+        "name": "foxyclient:Champions_2023_ACE",
+        "stream": false
+      }
+    ]
+  },
+  "aemondir_finisher": {
+    "category": "player",
+    "sounds": [
+      {
+        "name": "foxyclient:Aemondir_Finisher",
+        "stream": false
+      }
+    ]
+  },
+  "mystbloom_finisher": {
+    "category": "player",
+    "sounds": [
+      {
+        "name": "foxyclient:Mystbloom_Finisher",
+        "stream": false
+      }
+    ]
+  },
+  "neofrontier_finisher": {
+    "category": "player",
+    "sounds": [
+      {
+        "name": "foxyclient:NeoFrontier_Finisher",
+        "stream": false
+      }
+    ]
   }
 }

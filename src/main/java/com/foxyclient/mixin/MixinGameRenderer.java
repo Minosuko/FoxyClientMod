@@ -21,10 +21,18 @@ public class MixinGameRenderer {
 
     @Inject(method = "getFov", at = @At("RETURN"), cancellable = true)
     private void onGetFov(Camera camera, float tickDelta, boolean changingFov, CallbackInfoReturnable<Float> cir) {
+        float fov = cir.getReturnValue();
+
         Zoom zoom = Zoom.get();
-        if (zoom != null && zoom.getMagnification() > 1.0) {
-            cir.setReturnValue((float) (cir.getReturnValue() / zoom.getMagnification()));
+        if (zoom != null && zoom.isZooming()) {
+            fov = (float) (fov * zoom.getFovMultiplier(tickDelta));
         }
+        com.foxyclient.module.render.Freelook freelook = com.foxyclient.module.render.Freelook.get();
+        if (freelook != null && freelook.isActive()) {
+            fov = (float) (fov * freelook.getFovMultiplier(tickDelta));
+        }
+
+        cir.setReturnValue(fov);
     }
 
     @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/GameRenderer;renderWorld(Lnet/minecraft/client/render/RenderTickCounter;)V", shift = At.Shift.AFTER))

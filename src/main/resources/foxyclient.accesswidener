@@ -8,3 +8,11 @@ accessible field net/minecraft/entity/LivingEntity jumpingCooldown I
 accessible field net/minecraft/client/MinecraftClient session Lnet/minecraft/client/session/Session;
 mutable field net/minecraft/client/MinecraftClient session Lnet/minecraft/client/session/Session;
 accessible field net/minecraft/client/MinecraftClient apiServices Lnet/minecraft/util/ApiServices;
+
+accessible field net/minecraft/client/render/item/ItemRenderState layers [Lnet/minecraft/client/render/item/ItemRenderState$LayerRenderState;
+accessible field net/minecraft/client/render/item/ItemRenderState layerCount I
+accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState quads Ljava/util/List;
+accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState renderLayer Lnet/minecraft/client/render/RenderLayer;
+accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState glint Lnet/minecraft/client/render/item/ItemRenderState$Glint;
+accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState tints [I
+accessible field net/minecraft/client/render/item/ItemRenderState$LayerRenderState transform Lnet/minecraft/client/render/model/json/Transformation;

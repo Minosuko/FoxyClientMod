@@ -19,4 +19,30 @@ public class MixinEntityRenderState implements IEntityRenderState {
     public int getEntityId() {
         return entityId;
     }
+
+    @Unique
+    private boolean isSelf;
+
+    @Override
+    public void foxyclient$setSelf(boolean isSelf) {
+        this.isSelf = isSelf;
+    }
+
+    @Override
+    public boolean foxyclient$isSelf() {
+        return isSelf;
+    }
+
+    @Unique
+    private java.util.UUID uuid;
+
+    @Override
+    public void foxyclient$setUuid(java.util.UUID uuid) {
+        this.uuid = uuid;
+    }
+
+    @Override
+    public java.util.UUID foxyclient$getUuid() {
+        return uuid;
+    }
 }

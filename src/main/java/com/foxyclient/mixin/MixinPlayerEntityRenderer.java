@@ -23,6 +23,50 @@ public class MixinPlayerEntityRenderer {
                 state.capeVisible = true;
             }
         }
+        
+        if (player instanceof net.minecraft.entity.player.PlayerEntity p) {
+            ((com.foxyclient.mixin_interface.IEntityRenderState) state).foxyclient$setUuid(p.getUuid());
+        }
+    }
+
+    @Inject(method = "hasLabel", at = @At("HEAD"), cancellable = true)
+    private void forceLabel(PlayerLikeEntity entity, double distance, org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Boolean> cir) {
+        if (net.minecraft.client.MinecraftClient.getInstance().currentScreen instanceof net.minecraft.client.gui.screen.ingame.InventoryScreen) {
+            cir.setReturnValue(false);
+            return;
+        }
+
+        com.foxyclient.module.ui.Nametags module = com.foxyclient.module.ui.Nametags.INSTANCE;
+        boolean isSelf = entity == net.minecraft.client.MinecraftClient.getInstance().player;
+        
+        if (module != null && module.isEnabled()) {
+            if (isSelf) {
+                if (module.hideSelf.get()) {
+                    cir.setReturnValue(false);
+                } else {
+                    cir.setReturnValue(true);
+                }
+                return;
+            } else {
+                if (!module.showOther.get()) {
+                    cir.setReturnValue(false);
+                    return;
+                }
+            }
+        }
+    }
+
+    @Inject(method = "renderLabelIfPresent", at = @At("TAIL"))
+    private void renderBadge(PlayerEntityRenderState state, net.minecraft.client.util.math.MatrixStack matrices,
+                              net.minecraft.client.render.command.OrderedRenderCommandQueue queue, net.minecraft.client.render.state.CameraRenderState cameraState, CallbackInfo ci) {
+        com.foxyclient.module.ui.Nametags module = com.foxyclient.module.ui.Nametags.INSTANCE;
+        if (module == null || !module.showLogo.get()) return;
+        if (state.displayName == null) return;
+
+        boolean isSelf = ((com.foxyclient.mixin_interface.IEntityRenderState) state).foxyclient$isSelf();
+        if (isSelf) {
+            com.foxyclient.util.NametagUtils.renderBadge(state, state.displayName, matrices, queue, cameraState);
+        }
     }
 
     @Inject(method = "updateCape", at = @At("TAIL"))

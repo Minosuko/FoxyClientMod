@@ -86,7 +86,7 @@ public abstract class MixinLivingEntity {
             com.foxyclient.module.render.Freelook freelook = com.foxyclient.module.render.Freelook.get();
             com.foxyclient.module.render.Freecam freecam = com.foxyclient.module.render.Freecam.get();
             
-            if ((freelook != null && freelook.isEnabled()) || (freecam != null && freecam.isEnabled())) {
+            if ((freelook != null && freelook.isActive()) || (freecam != null && freecam.isEnabled())) {
                 LivingEntityAccessor accessor = (LivingEntityAccessor) this;
                 // If freelook is on, we want the body to stay still. 
                 // We don't use RotationManager here because that's for server-side rotations/spoofing.

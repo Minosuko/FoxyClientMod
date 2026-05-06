@@ -58,4 +58,27 @@ public class RenderLayers {
     
     // For SoundESP compatibility
     public static RenderLayer lines() { return BYPASS_LINES; }
+
+    // Depth-tested translucent layer for 3D world geometry (swords, etc.)
+    private static final RenderPipeline DEPTH_TRANSLUCENT_PIPELINE = RenderPipelines.register(
+        RenderPipeline.builder(RenderPipelines.TRANSFORMS_AND_PROJECTION_SNIPPET)
+            .withVertexShader("core/position_color")
+            .withFragmentShader("core/position_color")
+            .withBlend(com.mojang.blaze3d.pipeline.BlendFunction.TRANSLUCENT)
+            .withDepthTestFunction(com.mojang.blaze3d.platform.DepthTestFunction.LEQUAL_DEPTH_TEST)
+            .withDepthWrite(true)
+            .withCull(false)
+            .withVertexFormat(VertexFormats.POSITION_COLOR, VertexFormat.DrawMode.QUADS)
+            .withLocation("foxyclient_depth_translucent")
+            .build()
+    );
+
+    private static final RenderLayer DEPTH_TRANSLUCENT = RenderLayer.of(
+        "foxy_depth_translucent",
+        RenderSetup.builder(DEPTH_TRANSLUCENT_PIPELINE)
+            .translucent()
+            .build()
+    );
+
+    public static RenderLayer getDepthTranslucent() { return DEPTH_TRANSLUCENT; }
 }

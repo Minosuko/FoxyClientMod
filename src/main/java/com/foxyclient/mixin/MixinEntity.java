@@ -37,12 +37,6 @@ public class MixinEntity {
             ci.cancel();
             return;
         }
-
-        com.foxyclient.module.render.Freelook freelook = com.foxyclient.module.render.Freelook.get();
-        if (freelook != null && freelook.isEnabled()) {
-            freelook.updateCamera(cursorDeltaX, cursorDeltaY);
-            ci.cancel();
-            return;
-        }
+        // Freelook now handled in MixinMouse like Moonlight
     }
 }

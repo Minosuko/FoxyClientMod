@@ -144,7 +144,7 @@ public class ModuleManager {
         register(new TPFly());
         register(new AirJump());
 
-        // ====== Render (12) ======
+        // ====== Render (13) ======
         register(new ESP());
         register(new Tracers());
         register(new Fullbright());
@@ -187,6 +187,7 @@ public class ModuleManager {
         register(new MotionBlur());
         register(new CapePhysics());
         register(new MusicPlayer());
+        register(new TntCountdown());
 
         // ====== Player (11) ======
         register(new AutoEat());

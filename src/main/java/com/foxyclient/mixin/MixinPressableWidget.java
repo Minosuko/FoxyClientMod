@@ -75,9 +75,15 @@ public abstract class MixinPressableWidget extends ClickableWidget {
 
     /**
      * Replaces the vanilla drawButton logic with custom glassmorphic rendering.
+     * Restricted to TitleScreen and ClickGUI to match the "100% Lunar" objective.
      */
     @Inject(method = "drawButton", at = @At("HEAD"), cancellable = true)
     private void onDrawButton(DrawContext context, CallbackInfo ci) {
+        net.minecraft.client.gui.screen.Screen current = MinecraftClient.getInstance().currentScreen;
+        if (!(current instanceof net.minecraft.client.gui.screen.TitleScreen || current instanceof com.foxyclient.gui.ClickGUI)) {
+            return; // Use vanilla buttons in other screens
+        }
+
         ci.cancel();
 
         int x = this.getX();
@@ -85,11 +91,6 @@ public abstract class MixinPressableWidget extends ClickableWidget {
         int w = this.getWidth();
         int h = this.getHeight();
 
-        // Color interpolation based on hoverFade
-        // Hex colors:
-        // Idle BG: 0x80101010, Hover BG: 0xCC006666
-        // Idle Border: 0x4000FCFC, Hover Border: 0xFF00FCFC
-        
         int bgColor = interpolateColor(0x80101010, 0xCC006666, hoverFade);
         int borderColor = interpolateColor(0x4000FCFC, 0xFF00FCFC, hoverFade);
 
@@ -98,30 +99,47 @@ public abstract class MixinPressableWidget extends ClickableWidget {
             borderColor = 0x20888888;
         }
 
-        // Apply global alpha
         bgColor = applyAlpha(bgColor, this.alpha);
         borderColor = applyAlpha(borderColor, this.alpha);
 
-        // Draw main background
-        context.fill(x, y, x + w, y + h, bgColor);
+        // Draw Rounded Background
+        drawRoundedRect(context, x, y, x + w, y + h, 3, bgColor);
 
-        // Draw modern stroked border
-        context.drawHorizontalLine(x, x + w - 1, y, borderColor);
-        context.drawHorizontalLine(x, x + w - 1, y + h - 1, borderColor);
-        context.drawVerticalLine(x, y, y + h - 1, borderColor);
-        context.drawVerticalLine(x + w - 1, y, y + h - 1, borderColor);
+        // Draw Rounded Border
+        drawRoundedOutline(context, x, y, x + w, y + h, 3, borderColor);
         
         // If hovered, draw a subtle inner glow
         if (hoverFade > 0.1f) {
             int glowColor = applyAlpha(0x2000FCFC, hoverFade * this.alpha);
-            context.fill(x + 1, y + 1, x + w - 1, y + h - 1, glowColor);
+            drawRoundedRect(context, x + 1, y + 1, x + w - 1, y + h - 1, 2, glowColor);
         }
 
         // Click transition flash
         if (clickFade > 0.01f) {
             int flashColor = applyAlpha(0x4000FCFC, clickFade * this.alpha);
-            context.fill(x, y, x + w, y + h, flashColor);
+            drawRoundedRect(context, x, y, x + w, y + h, 3, flashColor);
         }
+    }
+
+    @Unique
+    private void drawRoundedRect(DrawContext context, int x1, int y1, int x2, int y2, int r, int color) {
+        context.fill(x1 + r, y1, x2 - r, y1 + r, color); // Top strip
+        context.fill(x1 + r, y2 - r, x2 - r, y2, color); // Bottom strip
+        context.fill(x1, y1 + r, x2, y2 - r, color); // Middle block
+        
+        // Corners (approximated)
+        context.fill(x1, y1, x1 + r, y1 + r, color); // TL
+        context.fill(x2 - r, y1, x2, y1 + r, color); // TR
+        context.fill(x1, y2 - r, x1 + r, y2, color); // BL
+        context.fill(x2 - r, y2 - r, x2, y2, color); // BR
+    }
+
+    @Unique
+    private void drawRoundedOutline(DrawContext context, int x1, int y1, int x2, int y2, int r, int color) {
+        context.drawHorizontalLine(x1 + r, x2 - r - 1, y1, color);
+        context.drawHorizontalLine(x1 + r, x2 - r - 1, y2 - 1, color);
+        context.drawVerticalLine(x1, y1 + r, y2 - r - 1, color);
+        context.drawVerticalLine(x2 - 1, y1 + r, y2 - r - 1, color);
     }
 
     @Unique

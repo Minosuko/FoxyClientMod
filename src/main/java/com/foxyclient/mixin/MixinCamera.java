@@ -56,8 +56,8 @@ public abstract class MixinCamera {
     @org.spongepowered.asm.mixin.injection.Redirect(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getYaw(F)F"))
     private float onGetYaw(net.minecraft.entity.Entity entity, float tickDelta) {
         Freelook freelook = Freelook.get();
-        if (freelook != null && freelook.isEnabled() && entity == net.minecraft.client.MinecraftClient.getInstance().player) {
-            return freelook.getCameraYaw();
+        if (freelook != null && freelook.isActive() && entity == net.minecraft.client.MinecraftClient.getInstance().player) {
+            return freelook.getInterpolatedYaw(tickDelta);
         }
         return entity.getYaw(tickDelta);
     }
@@ -65,8 +65,8 @@ public abstract class MixinCamera {
     @org.spongepowered.asm.mixin.injection.Redirect(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/Entity;getPitch(F)F"))
     private float onGetPitch(net.minecraft.entity.Entity entity, float tickDelta) {
         Freelook freelook = Freelook.get();
-        if (freelook != null && freelook.isEnabled() && entity == net.minecraft.client.MinecraftClient.getInstance().player) {
-            return freelook.getCameraPitch();
+        if (freelook != null && freelook.isActive() && entity == net.minecraft.client.MinecraftClient.getInstance().player) {
+            return freelook.getInterpolatedPitch(tickDelta);
         }
         return entity.getPitch(tickDelta);
     }
